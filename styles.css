@@ -253,7 +253,7 @@ tr.total-row th, tr.total-row td {
 #income-list { overflow-x: auto; }
 .income-row {
 	display: grid;
-	grid-template-columns: 1fr 130px 120px 80px;
+	grid-template-columns: 16px 1fr 130px 120px 80px;
 	gap: 8px;
 	margin-bottom: 6px;
 	min-width: 460px; /* 내부가 줄바꿈되며 깨지지 않도록 최소 너비 확보 */
@@ -268,15 +268,44 @@ tr.total-row th, tr.total-row td {
 /* 인센티브/멤버 행 스타일(인라인 스타일 제거용) */
 .incentive-row {
 	display: grid;
-	grid-template-columns: 1fr 140px 1fr 80px;
+	grid-template-columns: 16px 1fr 140px 1fr 80px;
 	gap: 8px;
 	margin-bottom: 6px;
 }
 .member-row {
 	display: grid;
-	grid-template-columns: minmax(150px, 1fr) 160px 110px 1fr 82px;
+	grid-template-columns: 16px minmax(150px, 1fr) 160px 110px 1fr 82px;
 	gap: 8px;
 	margin-bottom: 6px;
+}
+
+/* 드래그 핸들 */
+.drag-handle {
+	display: inline-block;
+	width: 12px;
+	height: 24px;
+	border-radius: 4px;
+	background:
+		radial-gradient(circle at 30% 25%, #9ca3af 1.5px, transparent 1.5px),
+		radial-gradient(circle at 70% 25%, #9ca3af 1.5px, transparent 1.5px),
+		radial-gradient(circle at 30% 50%, #9ca3af 1.5px, transparent 1.5px),
+		radial-gradient(circle at 70% 50%, #9ca3af 1.5px, transparent 1.5px),
+		radial-gradient(circle at 30% 75%, #9ca3af 1.5px, transparent 1.5px),
+		radial-gradient(circle at 70% 75%, #9ca3af 1.5px, transparent 1.5px);
+	background-color: transparent;
+	cursor: grab;
+	align-self: center;
+	justify-self: center;
+	user-select: none;
+	touch-action: none;
+}
+.drag-handle:active { cursor: grabbing; }
+
+/* 드래그 이미지(행 전체 미리보기) */
+.drag-ghost {
+	box-shadow: 0 6px 18px rgba(0,0,0,.18);
+	border: 1px solid var(--line);
+	background: #fff;
 }
 
 /* 인쇄 스타일 */

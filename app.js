@@ -87,13 +87,16 @@ function renderIncentives() {
 	state.incentives.forEach((it, idx) => {
 		const row = document.createElement('div');
 		row.className = 'incentive-row';
+		row.draggable = false;
+		row.dataset.index = String(idx);
 		row.innerHTML = `
+			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${it.label ?? ''}" aria-label="인센티브 라벨">
 			<input type="number" min="0" step="1" value="${it.amount ?? 0}" aria-label="인센티브 금액">
 			<select aria-label="인센티브 대상자"></select>
 			<button class="btn" aria-label="인센티브 삭제">삭제</button>
 		`;
-		const [label, amount, sel, del] = row.children;
+		const [handle, label, amount, sel, del] = row.children;
 		// 멤버 옵션 구성
 		sel.innerHTML = '';
 		state.members.forEach((m, i) => {
@@ -102,6 +105,10 @@ function renderIncentives() {
 			opt.textContent = m.name || `인원${i+1}`;
 			if (it.recipientId ? it.recipientId === m.id : Number(it.recipient) === i) opt.selected = true;
 			sel.appendChild(opt);
+		});
+		// 입력 요소에서의 드래그 방지, 핸들 제외
+		row.querySelectorAll('input, textarea, select, button:not(.drag-handle), label').forEach(elm => {
+			elm.setAttribute('draggable', 'false');
 		});
 		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
 		label.addEventListener('change', () => { renderOutputs(); });
@@ -114,6 +121,47 @@ function renderIncentives() {
 			renderOutputs();
 		});
 		del.addEventListener('click', () => { state.incentives.splice(idx,1); save(); renderIncentives(); renderOutputs(); });
+		// DnD - drag image를 행 전체로
+		let dragGhostInc = null;
+		handle.addEventListener('dragstart', (e) => {
+			e.dataTransfer.setData('text/plain', String(idx));
+			e.dataTransfer.effectAllowed = 'move';
+			const rect = row.getBoundingClientRect();
+			dragGhostInc = row.cloneNode(true);
+			dragGhostInc.classList.add('drag-ghost');
+			dragGhostInc.style.position = 'fixed';
+			dragGhostInc.style.top = '-1000px';
+			dragGhostInc.style.left = '-1000px';
+			dragGhostInc.style.width = rect.width + 'px';
+			dragGhostInc.style.pointerEvents = 'none';
+			document.body.appendChild(dragGhostInc);
+			const offsetX = e.clientX - rect.left;
+			const offsetY = e.clientY - rect.top;
+			if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(dragGhostInc, offsetX, offsetY);
+		});
+		handle.addEventListener('dragend', () => {
+			if (dragGhostInc && dragGhostInc.parentNode) dragGhostInc.parentNode.removeChild(dragGhostInc);
+			dragGhostInc = null;
+		});
+		// 드롭 타겟
+		row.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			row.classList.add('drag-over');
+		});
+		row.addEventListener('dragleave', () => {
+			row.classList.remove('drag-over');
+		});
+		row.addEventListener('drop', (e) => {
+			e.preventDefault();
+			row.classList.remove('drag-over');
+			const from = Number(e.dataTransfer.getData('text/plain'));
+			const to = idx;
+			if (!Number.isFinite(from) || from === to) return;
+			const [moved] = state.incentives.splice(from, 1);
+			state.incentives.splice(to, 0, moved);
+			save();
+			renderAllNoTabs();
+		});
 		el.incentiveList.appendChild(row);
 	});
 }
@@ -124,13 +172,20 @@ function renderIncomeItems() {
 	state.incomeItems.forEach((it, idx) => {
 		const row = document.createElement('div');
 		row.className = 'income-row';
+		row.draggable = false;
+		row.dataset.index = String(idx);
 		row.innerHTML = `
+			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${it.label ?? ''}" aria-label="수입 라벨">
 			<input type="number" min="0" step="1" value="${clampInt(it.gross) || 0}" aria-label="전체금액">
 			<input type="number" min="0" step="0.01" inputmode="decimal" value="${Number(it.feeRate || 0)}" aria-label="수수료율">
 			<button class="btn" aria-label="수입 항목 삭제">삭제</button>
 		`;
-		const [label, gross, feeRate, del] = row.children;
+		const [handle, label, gross, feeRate, del] = row.children;
+		// 입력 요소에서의 드래그 방지, 핸들 제외
+		row.querySelectorAll('input, textarea, select, button:not(.drag-handle), label').forEach(elm => {
+			elm.setAttribute('draggable', 'false');
+		});
 		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
 		label.addEventListener('change', () => { renderOutputs(); });
 		gross.addEventListener('input', () => { it.gross = clampInt(gross.value); gross.value = it.gross; save(); renderOutputs(); });
@@ -138,6 +193,47 @@ function renderIncomeItems() {
 		feeRate.addEventListener('input', () => { it.feeRate = Number(feeRate.value || 0); save(); renderOutputs(); });
 		feeRate.addEventListener('change', () => { renderOutputs(); });
 		del.addEventListener('click', () => { state.incomeItems.splice(idx,1); save(); renderIncomeItems(); renderOutputs(); });
+		// DnD - drag image를 행 전체로
+		let dragGhostIncItem = null;
+		handle.addEventListener('dragstart', (e) => {
+			e.dataTransfer.setData('text/plain', String(idx));
+			e.dataTransfer.effectAllowed = 'move';
+			const rect = row.getBoundingClientRect();
+			dragGhostIncItem = row.cloneNode(true);
+			dragGhostIncItem.classList.add('drag-ghost');
+			dragGhostIncItem.style.position = 'fixed';
+			dragGhostIncItem.style.top = '-1000px';
+			dragGhostIncItem.style.left = '-1000px';
+			dragGhostIncItem.style.width = rect.width + 'px';
+			dragGhostIncItem.style.pointerEvents = 'none';
+			document.body.appendChild(dragGhostIncItem);
+			const offsetX = e.clientX - rect.left;
+			const offsetY = e.clientY - rect.top;
+			if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(dragGhostIncItem, offsetX, offsetY);
+		});
+		handle.addEventListener('dragend', () => {
+			if (dragGhostIncItem && dragGhostIncItem.parentNode) dragGhostIncItem.parentNode.removeChild(dragGhostIncItem);
+			dragGhostIncItem = null;
+		});
+		// 드롭 타겟
+		row.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			row.classList.add('drag-over');
+		});
+		row.addEventListener('dragleave', () => {
+			row.classList.remove('drag-over');
+		});
+		row.addEventListener('drop', (e) => {
+			e.preventDefault();
+			row.classList.remove('drag-over');
+			const from = Number(e.dataTransfer.getData('text/plain'));
+			const to = idx;
+			if (!Number.isFinite(from) || from === to) return;
+			const [moved] = state.incomeItems.splice(from, 1);
+			state.incomeItems.splice(to, 0, moved);
+			save();
+			renderAllNoTabs();
+		});
 		el.incomeList.appendChild(row);
 	});
 }
@@ -148,21 +244,21 @@ function renderMembers() {
 	state.members.forEach((m, idx) => {
 		const row = document.createElement('div');
 		row.className = 'member-row';
-		row.draggable = true;
+		row.draggable = false;
 		row.dataset.index = String(idx);
 		row.innerHTML = `
+			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${m.name ?? ''}" aria-label="이름">
 			<input type="number" min="0" step="1" value="${m.penalty ?? 0}" aria-label="사망 패널티">
 			<label style="display:flex; align-items:center; gap:6px; justify-content:center;"><input type="checkbox" ${m.exclude ? 'checked':''} aria-label="분배 제외"> 분배 제외</label>
 			<input type="text" value="${m.note ?? ''}" aria-label="메모">
 			<button class="btn" aria-label="공대원 삭제">삭제</button>
 		`;
-		const [name, pen, excludeWrap, note, del] = row.children;
+		const [handle, name, pen, excludeWrap, note, del] = row.children;
 		const exclude = excludeWrap.querySelector('input[type="checkbox"]');
 		// 텍스트/입력 요소에서의 드래그로 순서 변경 방지
-		row.querySelectorAll('input, textarea, select, button, label').forEach(elm => {
+		row.querySelectorAll('input, textarea, select, button:not(.drag-handle), label').forEach(elm => {
 			elm.setAttribute('draggable', 'false');
-			elm.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
 		});
 		name.addEventListener('input', () => { m.name = name.value; save(); renderOutputs(); renderIncentives(); });
 		name.addEventListener('change', () => { save(); renderAllNoTabs(); });
@@ -176,14 +272,31 @@ function renderMembers() {
 			if (e.key === 'Delete') { state.members.splice(idx,1); save(); renderMembers(); renderOutputs(); }
 		});
 		// Drag & Drop handlers
-		row.addEventListener('dragstart', (e) => {
-			// 입력/버튼 등에서 시작된 드래그는 무시
-			if (e.target && e.target.closest && e.target.closest('input, textarea, select, button, label')) {
-				e.preventDefault();
-				return;
-			}
+		let dragGhost = null;
+		handle.addEventListener('dragstart', (e) => {
 			e.dataTransfer.setData('text/plain', String(idx));
 			e.dataTransfer.effectAllowed = 'move';
+			// 전체 행이 따라오도록 드래그 이미지 커스터마이즈
+			const rect = row.getBoundingClientRect();
+			dragGhost = row.cloneNode(true);
+			dragGhost.classList.add('drag-ghost');
+			dragGhost.style.position = 'fixed';
+			dragGhost.style.top = '-1000px';
+			dragGhost.style.left = '-1000px';
+			dragGhost.style.width = rect.width + 'px';
+			dragGhost.style.pointerEvents = 'none';
+			document.body.appendChild(dragGhost);
+			const offsetX = e.clientX - rect.left;
+			const offsetY = e.clientY - rect.top;
+			if (e.dataTransfer.setDragImage) {
+				e.dataTransfer.setDragImage(dragGhost, offsetX, offsetY);
+			}
+		});
+		handle.addEventListener('dragend', () => {
+			if (dragGhost && dragGhost.parentNode) {
+				dragGhost.parentNode.removeChild(dragGhost);
+			}
+			dragGhost = null;
 		});
 		row.addEventListener('dragover', (e) => {
 			e.preventDefault();
