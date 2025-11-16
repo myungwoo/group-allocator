@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>알목 분배표</title>
+	<title>분배 계산기</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
@@ -33,7 +33,7 @@
 							</label>
 							<label class="field col-span-2">
 								<span>제목</span>
-								<input id="input-title" type="text" placeholder="예) 2025. 11. 12 물만 공대 알목 분배" />
+								<input id="input-title" type="text" placeholder="예) 혼테일 공대 알목 분배" />
 							</label>
 						</div>
 					</div>
@@ -93,18 +93,18 @@
 		</div>
 
 		<div id="printArea">
-			<div class="header" id="header-title">물만 공대 알목 분배</div>
+			<div class="header" id="header-title">-</div>
 			<div class="sheet">
 				<div>
 					<table id="main-table">
 						<thead>
 							<tr>
 								<th style="width:28%;">명단</th>
-								<th style="width:14%;">알목 분배</th>
-								<th style="width:14%;">사망 패널티</th>
-								<th style="width:14%;">인센</th>
-								<th style="width:14%;">패널티 분배금</th>
-								<th style="width:16%;">최종 알목 분배금</th>
+								<th style="width:14%;">기본 분배금</th>
+								<th style="width:14%;">패널티</th>
+								<th style="width:14%;">인센티브</th>
+								<th style="width:14%;">패널티 분배</th>
+								<th style="width:16%;">최종 분배금</th>
 							</tr>
 						</thead>
 						<tbody id="table-body"></tbody>
