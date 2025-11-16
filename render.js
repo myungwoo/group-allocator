@@ -130,6 +130,14 @@ export function renderOutputs(el, state) {
 		['total-base','total-penalty','total-incentive','total-penalty-dist','total-final'].forEach(k => {
 			el.totalRow.querySelector(`[data-k="${k}"]`).textContent = '0';
 		});
+		// 검산 표시 초기화
+		['total-base','total-incentive','total-final','total-penalty-dist'].forEach(k => {
+			const c = el.totalRow.querySelector(`[data-k="${k}"]`);
+			if (c) {
+				c.classList.remove('mismatch');
+				c.removeAttribute('title');
+			}
+		});
 		el.memoRenderBottom.textContent = state.memo || '';
 		return;
 	}
@@ -159,6 +167,20 @@ export function renderOutputs(el, state) {
 	el.totalRow.querySelector('[data-k="total-incentive"]').textContent = fmt(result.totals.incentive);
 	el.totalRow.querySelector('[data-k="total-penalty-dist"]').textContent = fmt(result.totals.penaltyDist);
 	el.totalRow.querySelector('[data-k="total-final"]').textContent = fmt(result.totals.final);
+	// TOTAL 검산 표시
+	const cellBase = el.totalRow.querySelector('[data-k="total-base"]');
+	const cellIncentive = el.totalRow.querySelector('[data-k="total-incentive"]');
+	const cellFinal = el.totalRow.querySelector('[data-k="total-final"]');
+	const cellPenaltyDist = el.totalRow.querySelector('[data-k="total-penalty-dist"]');
+	const setCheck = (cell, ok, expected) => {
+		cell.classList.toggle('mismatch', !ok);
+		cell.title = ok ? '검산 일치' : `검산 불일치 (기대값: ${fmt(expected)})`;
+	};
+	setCheck(cellBase, result.totals.base === result.meta.distributableBase, result.meta.distributableBase);
+	setCheck(cellIncentive, result.totals.incentive === result.meta.incentiveTotal, result.meta.incentiveTotal);
+	setCheck(cellFinal, result.totals.final === result.meta.netIncome, result.meta.netIncome);
+	// 패널티 분배금 합계 = 사망 패널티 합계(부호 보정)
+	setCheck(cellPenaltyDist, result.totals.penaltyDist === -result.totals.penalty, -result.totals.penalty);
 
 	// 요약/메모
 	const tbody = document.getElementById('summary-body');

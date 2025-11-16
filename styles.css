@@ -209,6 +209,9 @@ tr.total-row th, tr.total-row td {
 	background: var(--total-bg);
 	font-weight: 800;
 }
+tr.total-row td.mismatch {
+	color: var(--danger);
+}
 .badge {
 	display: inline-block;
 	border: 1px solid #9ca3af;
