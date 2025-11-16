@@ -29,6 +29,7 @@ const el = {
 
 	btnReset: document.getElementById('btn-reset'),
 	btnSavePng: document.getElementById('btn-save-png'),
+	btnCopyPng: document.getElementById('btn-copy-png'),
 	btnPrint: document.getElementById('btn-print'),
 	btnAddTab: document.getElementById('btn-add-tab'),
 	btnRemoveTab: document.getElementById('btn-remove-tab'),
@@ -79,6 +80,23 @@ function renderTabs() {
 }
 function updateTabNavButtons() {
 	// 추후 탭 이동 버튼이 추가되면 제어 로직을 넣습니다.
+}
+
+// ===== PNG 생성 헬퍼 =====
+async function generatePaddedPngBlob() {
+	const node = document.getElementById('printArea');
+	const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
+	// 패딩 추가 캔버스
+	const pad = 32;
+	const padded = document.createElement('canvas');
+	padded.width = canvas.width + pad * 2;
+	padded.height = canvas.height + pad * 2;
+	const ctx = padded.getContext('2d');
+	ctx.fillStyle = '#ffffff';
+	ctx.fillRect(0, 0, padded.width, padded.height);
+	ctx.drawImage(canvas, pad, pad);
+	const blob = await new Promise((resolve) => padded.toBlob(resolve, 'image/png'));
+	return blob;
 }
 
 // 인센티브 목록
@@ -397,25 +415,31 @@ el.btnReset.addEventListener('click', () => {
 	renderAllNoTabs();
 });
 el.btnSavePng.addEventListener('click', async () => {
-	const node = document.getElementById('printArea');
-	const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
-	// 패딩 추가 캔버스
-	const pad = 32;
-	const padded = document.createElement('canvas');
-	padded.width = canvas.width + pad * 2;
-	padded.height = canvas.height + pad * 2;
-	const ctx = padded.getContext('2d');
-	ctx.fillStyle = '#ffffff';
-	ctx.fillRect(0, 0, padded.width, padded.height);
-	ctx.drawImage(canvas, pad, pad);
-	padded.toBlob((blob) => {
-		const a = document.createElement('a');
-		a.href = URL.createObjectURL(blob);
-		const ymd = (state.date || '').replaceAll('-', '');
-		a.download = `알목-분배표-${ymd || 'export'}.png`;
-		a.click();
-		URL.revokeObjectURL(a.href);
-	});
+	const blob = await generatePaddedPngBlob();
+	if (!blob) return;
+	const a = document.createElement('a');
+	a.href = URL.createObjectURL(blob);
+	const ymd = (state.date || '').replaceAll('-', '');
+	a.download = `알목-분배표-${ymd || 'export'}.png`;
+	a.click();
+	URL.revokeObjectURL(a.href);
+});
+el.btnCopyPng?.addEventListener('click', async () => {
+	const blob = await generatePaddedPngBlob();
+	if (!blob) return;
+	try {
+		if (navigator && navigator.clipboard && window.ClipboardItem) {
+			const item = new ClipboardItem({ [blob.type || 'image/png']: blob });
+			await navigator.clipboard.write([item]);
+			const prev = el.btnCopyPng.textContent;
+			el.btnCopyPng.textContent = '복사됨';
+			setTimeout(() => { el.btnCopyPng.textContent = prev; }, 1200);
+		} else {
+			console.warn('Clipboard API not available');
+		}
+	} catch (err) {
+		console.warn('PNG clipboard copy failed:', err);
+	}
 });
 el.btnPrint.addEventListener('click', () => window.print());
 el.btnAddTab.addEventListener('click', addNewTab);
