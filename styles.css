@@ -238,7 +238,7 @@ tr.total-row td.mismatch {
 	margin: 0 0 8px;
 	font-size: 14px;
 }
-.memo-content { white-space: pre-wrap; min-height: 240px; }
+.memo-content { white-space: pre-wrap; }
 
 /* 하단 요약 */
 .footer {
