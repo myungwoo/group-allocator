@@ -144,6 +144,22 @@ input[type="text"], input[type="number"], input[type="date"], textarea {
 	padding: 8px 10px;
 	background: #fff;
 }
+/* select를 입력박스와 조화되게 */
+select {
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	padding: 8px 10px;
+	background-color: #fff;
+	appearance: none;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 16px 16px;
+	padding-right: 32px; /* 드롭다운 화살표 영역 확보 */
+}
+select::-ms-expand { display: none; }
 /* MEMO 텍스트박스가 섹션 폭에 맞게 */
 #input-memo { width: 100%; }
 input[type="number"] { text-align: right; }
