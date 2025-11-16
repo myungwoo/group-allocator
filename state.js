@@ -9,6 +9,7 @@ export const state = {
 	date: new Date().toISOString().slice(0,10),
 	title: '',
 	incentives: [],
+	penaltyItems: [],
 	incomeItems: [],
 	members: [],
 	memo: ''
@@ -19,6 +20,7 @@ export function newBlankState() {
 		date: new Date().toISOString().slice(0,10),
 		title: '',
 		incentives: [],
+		penaltyItems: [],
 		incomeItems: [],
 		members: [],
 		memo: ''

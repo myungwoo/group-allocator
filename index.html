@@ -18,7 +18,7 @@
 				<div class="tabs" id="tabs"></div>
 			</div>
 			<button class="btn" id="btn-add-tab" aria-label="새 기록 추가">+ 새 기록</button>
-			<button class="btn danger" id="btn-remove-tab" aria-label="현재 기록 삭제">기록 삭제</button>
+			<button class="btn danger" id="btn-remove-tab" aria-label="현재 기록 삭제">🗑️</button>
 		</div>
 		<details class="input-panel" open>
 			<summary>입력 패널 (접기/펼치기)</summary>
@@ -62,24 +62,42 @@
 						<div class="small" style="margin-top:6px;">금액은 0 이상의 정수만 허용됩니다.</div>
 					</div>
 					<div class="section">
-						<h3>MEMO</h3>
-						<textarea id="input-memo" rows="7" placeholder="여러 줄 메모를 입력하세요. 인쇄 시 우측 박스에 표시됩니다."></textarea>
+						<h3>패널티 항목</h3>
+						<div id="penalty-list"></div>
+						<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+							<input id="new-penalty-label" type="text" placeholder="라벨" style="flex:1 1 100px;">
+							<input id="new-penalty-amount" type="number" min="0" step="1" placeholder="금액(-)" style="width:100px;">
+							<select id="new-penalty-mode" aria-label="패널티 분배 방식" style="min-width:120px;">
+								<option value="exclude-penalized">부과 인원 제외 분배</option>
+								<option value="exclude-self">본인 제외 분배</option>
+								<option value="include-self">본인 포함 분배</option>
+							</select>
+							<button class="btn" id="btn-add-penalty" aria-label="패널티 추가">추가</button>
+						</div>
+						<div class="small" style="margin-top:6px;">
+							패널티 금액은 0 이상의 정수. 분배 제외 인원은 항상 제외됩니다.
+						</div>
 					</div>
 				</div>
 
-				<div class="section">
-					<h3>공대원 목록</h3>
-					<div id="member-list"></div>
-					<div style="display:flex; gap:8px; margin-top:8px;">
-						<input id="new-member-name" type="text" placeholder="이름" style="flex:1;">
-						<input id="new-member-penalty" type="number" min="0" step="1" placeholder="사망 패널티(원)">
-						<label style="display:flex; align-items:center; gap:6px;">
-							<input id="new-member-exclude" type="checkbox"> 분배 제외
-						</label>
-						<input id="new-member-note" type="text" placeholder="메모(선택)" style="flex:1;">
-						<button class="btn" id="btn-add-member" aria-label="공대원 추가">추가</button>
+				<div class="grid-2" style="grid-template-columns: 5fr 3fr;">
+					<div class="section">
+						<h3>공대원 목록</h3>
+						<div id="member-list"></div>
+						<div style="display:flex; gap:8px; margin-top:8px;">
+							<input id="new-member-name" type="text" placeholder="이름" style="flex:1;">
+							<label style="display:flex; align-items:center; gap:6px;">
+								<input id="new-member-exclude" type="checkbox"> 분배 제외
+							</label>
+							<input id="new-member-note" type="text" placeholder="메모(선택)" style="flex:1;">
+							<button class="btn" id="btn-add-member" aria-label="공대원 추가">추가</button>
+						</div>
+						<div class="small" style="margin-top:6px;">키보드로도 추가(Enter)/삭제(Del) 가능합니다.</div>
 					</div>
-					<div class="small" style="margin-top:6px;">사망 패널티는 음수 불가. 키보드로도 추가(Enter)/삭제(Del) 가능합니다.</div>
+					<div class="section memo-input-section">
+						<h3>MEMO</h3>
+						<textarea id="input-memo" rows="7" placeholder="여러 줄 메모를 입력하세요. 인쇄 시 우측 박스에 표시됩니다."></textarea>
+					</div>
 				</div>
 			</div>
 		</details>

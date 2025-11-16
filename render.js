@@ -3,6 +3,13 @@
 
 import { fmt, fmtOrBlank, clampInt, escapeHtml, formatDate } from './utils.js';
 
+// 패널티 분배 방식 라벨(전역)
+const PENALTY_MODE_LABEL = {
+	'exclude-penalized': '부과 인원 제외',
+	'exclude-self': '본인 제외',
+	'include-self': '본인 포함'
+};
+
 export function headerTitle(state) {
 	const ds = formatDate(state.date);
 	const t = (state.title || '').trim();
@@ -45,14 +52,6 @@ export function compute(state) {
 	const incentiveTotal = incentives.reduce((s, i) => s + i.amount, 0);
 	const distributableBase = Math.max(0, netIncome - incentiveTotal);
 
-	const pTotal = members.reduce((s, m) => s + Math.max(0, m.penalty), 0);
-	const eligibleIdx = [];
-	members.forEach((m, i) => { if (m.penalty === 0 && !m.exclude) eligibleIdx.push(i); });
-	const N = eligibleIdx.length;
-	if (pTotal > 0 && N === 0) {
-		return { error: '사망 패널티가 존재하지만 분배 대상자가 0명입니다. (패널티 0 & 분배 제외 해제 필요)' };
-	}
-
 	const includedIdx = [];
 	members.forEach((m, i) => { if (!m.exclude) includedIdx.push(i); });
 	const includedCount = includedIdx.length;
@@ -67,18 +66,60 @@ export function compute(state) {
 		basePerEach[idx] = basePerFloor + (order < baseRemainder ? 1 : 0);
 	});
 
+	const penaltyChargeEach = new Array(memberCount).fill(0);
 	const penaltyDistEach = new Array(memberCount).fill(0);
-	if (pTotal > 0 && N > 0) {
-		const per = Math.floor(pTotal / N);
-		const rem = pTotal - (per * N);
-		eligibleIdx.forEach((idx, k) => {
-			penaltyDistEach[idx] = per + (k < rem ? 1 : 0);
+
+	// 신규: 패널티 항목 기반 분배
+	const penaltyItemsRaw = Array.isArray(state?.penaltyItems) ? state.penaltyItems : [];
+	const penaltyItems = penaltyItemsRaw.map(p => ({
+		label: (p.label || '').trim(),
+		amount: Math.max(0, clampInt(p.amount)),
+		payerId: p.payerId || null,
+		payer: Number.isFinite(Number(p.payer)) ? Number(p.payer) : null,
+		mode: p.mode || 'exclude-penalized'
+	}));
+
+	const idToIndex = new Map();
+	members.forEach((m, idx) => { if (m.id) idToIndex.set(m.id, idx); });
+	// 패널티 항목: 분배 집합 계산
+	const penalizedSet = new Set();
+	const payerIndexOf = (it) => {
+		if (it.payerId && idToIndex.has(it.payerId)) return idToIndex.get(it.payerId);
+		if (typeof it.payer === 'number' && it.payer >= 0 && it.payer < memberCount) return it.payer;
+		return null;
+	};
+	penaltyItems.forEach(it => {
+		const pidx = payerIndexOf(it);
+		if (pidx !== null) penalizedSet.add(pidx);
+	});
+	for (const it of penaltyItems) {
+		const amt = it.amount;
+		if (!(Number.isFinite(amt) && amt > 0)) continue;
+		const pidx = payerIndexOf(it);
+		if (pidx === null) continue; // 유효한 지불자 없음
+		penaltyChargeEach[pidx] += amt;
+		// 분배 대상 계산
+		let recipients = [];
+		if (it.mode === 'include-self') {
+			recipients = includedIdx.slice();
+		} else if (it.mode === 'exclude-self') {
+			recipients = includedIdx.filter(i => i !== pidx);
+		} else {
+			// exclude-penalized (기본)
+			recipients = includedIdx.filter(i => !penalizedSet.has(i));
+		}
+		const R = recipients.length;
+		if (R === 0) {
+			return { error: `패널티 항목 "${it.label || '무명'}"의 분배 대상자가 0명입니다. (분배 제외 해제/모드 확인)` };
+		}
+		const per = Math.floor(amt / R);
+		const rem = amt - (per * R);
+		recipients.forEach((idx, k) => {
+			penaltyDistEach[idx] += per + (k < rem ? 1 : 0);
 		});
 	}
 
 	const perMemberIncent = new Array(memberCount).fill(0);
-	const idToIndex = new Map();
-	members.forEach((m, idx) => { if (m.id) idToIndex.set(m.id, idx); });
 	incentives.forEach(it => {
 		let idx = null;
 		if (it.recipientId && idToIndex.has(it.recipientId)) {
@@ -89,23 +130,23 @@ export function compute(state) {
 		if (idx !== null) perMemberIncent[idx] += it.amount;
 	});
 
-	const finalEach = members.map((m, i) => basePerEach[i] - m.penalty + penaltyDistEach[i] + perMemberIncent[i]);
+	const finalEach = members.map((m, i) => basePerEach[i] - penaltyChargeEach[i] + penaltyDistEach[i] + perMemberIncent[i]);
 	const sumBase = basePerEach.reduce((a,b)=>a+b,0);
 	const sumPenaltyDist = penaltyDistEach.reduce((a,b)=>a+b,0);
-	const sumPenalty = members.reduce((a,m)=>a + (m.penalty>0 ? -m.penalty : 0),0);
+	const sumPenalty = -penaltyChargeEach.reduce((a,b)=>a+b,0);
 	const sumFinal = finalEach.reduce((a,b)=>a+b,0);
 
 	return {
 		members, incentives,
 		meta: {
 			gross, netIncome, incentiveTotal, distributableBase,
-			memberCount, includedCount, basePerFloor, baseRemainder, pTotal, N
+			memberCount, includedCount, basePerFloor, baseRemainder, pTotal: penaltyChargeEach.reduce((a,b)=>a+b,0), N: includedCount
 		},
 		rows: members.map((m, i) => ({
-			name: m.name || `인원${i+1}`,
+			name: m.name || `공대원${i+1}`,
 			note: m.note,
 			base: basePerEach[i],
-			penalty: -m.penalty,
+			penalty: -penaltyChargeEach[i],
 			incentive: perMemberIncent[i],
 			penaltyDist: penaltyDistEach[i],
 			final: finalEach[i]
@@ -138,7 +179,31 @@ export function renderOutputs(el, state) {
 				c.removeAttribute('title');
 			}
 		});
-		el.memoRenderBottom.textContent = state.memo || '';
+		// 메모 + 패널티 항목 노출
+		let memoText = state.memo || '';
+		if (state.penaltyItems?.length) {
+			// 멤버 이름 매핑
+			const idToName = new Map();
+			(state.members || []).forEach((m, idx) => {
+				const name = (m?.name || `공대원${idx+1}`);
+				if (m?.id) idToName.set(m.id, name);
+			});
+			const lines = state.penaltyItems.map((it, i) => {
+				let pname = '';
+				if (it.payerId && idToName.has(it.payerId)) pname = idToName.get(it.payerId);
+				else if (Number.isFinite(Number(it.payer))) {
+					const pidx = Number(it.payer);
+					pname = ((state.members || [])[pidx]) ? (((state.members || [])[pidx].name) || `공대원${pidx+1}`) : '';
+				}
+				const nameWithPayer = (it.label || `패널티 ${i+1}`) + (pname ? ` (${pname})` : '');
+				const modeLabel = PENALTY_MODE_LABEL[it.mode] || PENALTY_MODE_LABEL['exclude-penalized'];
+				return `- ${nameWithPayer} [${modeLabel} 방식] ${fmt(clampInt(it.amount))}`;
+			});
+			if (lines.length) {
+				memoText += (memoText ? '\n\n' : '') + '[패널티]\n' + lines.join('\n');
+			}
+		}
+		el.memoRenderBottom.textContent = memoText;
 		return;
 	}
 
@@ -202,7 +267,7 @@ export function renderOutputs(el, state) {
 	if (state.incentives?.length) {
 		const idToName = new Map();
 		result.members.forEach((m, idx) => {
-			const name = m.name || `인원${idx+1}`;
+			const name = m.name || `공대원${idx+1}`;
 			if (m.id) idToName.set(m.id, name);
 		});
 		state.incentives.forEach((it, i) => {
@@ -211,7 +276,7 @@ export function renderOutputs(el, state) {
 				rname = idToName.get(it.recipientId);
 			} else if (Number.isFinite(Number(it.recipient))) {
 				const ridx = Number(it.recipient);
-				rname = (result.members[ridx]) ? (result.members[ridx].name || `인원${ridx+1}`) : '';
+				rname = (result.members[ridx]) ? (result.members[ridx].name || `공대원${ridx+1}`) : '';
 			}
 			const nameWithRecipient = (it.label || `인센 ${i+1}`) + (rname ? ` (${rname})` : '');
 			const tr = document.createElement('tr');
@@ -222,6 +287,7 @@ export function renderOutputs(el, state) {
 			tbody.appendChild(tr);
 		});
 	}
+	// 패널티 항목은 요약 표에 표시하지 않음
 
 	el.sumGross.textContent = fmt(result.meta.gross);
 	el.sumNet.textContent = fmt(result.meta.netIncome);
@@ -230,7 +296,31 @@ export function renderOutputs(el, state) {
 	el.kpiDistributable.textContent = fmt(result.meta.distributableBase);
 	el.kpiCount.textContent = String(result.meta.includedCount);
 	el.kpiPerHead.textContent = fmt(result.meta.basePerFloor);
-	el.memoRenderBottom.textContent = state.memo || '';
+	// 메모 + 패널티 항목 노출
+	let memoText = state.memo || '';
+	if (state.penaltyItems?.length) {
+		const idToName = new Map();
+		result.members.forEach((m, idx) => {
+			const name = m.name || `공대원${idx+1}`;
+			if (m.id) idToName.set(m.id, name);
+		});
+		const lines = state.penaltyItems.map((it, i) => {
+			let pname = '';
+			if (it.payerId && idToName.has(it.payerId)) {
+				pname = idToName.get(it.payerId);
+			} else if (Number.isFinite(Number(it.payer))) {
+				const pidx = Number(it.payer);
+				pname = (result.members[pidx]) ? (result.members[pidx].name || `공대원${pidx+1}`) : '';
+			}
+			const nameWithPayer = (it.label || `패널티 ${i+1}`) + (pname ? ` (${pname})` : '');
+			const modeLabel = PENALTY_MODE_LABEL[it.mode] || PENALTY_MODE_LABEL['exclude-penalized'];
+			return `- ${nameWithPayer} [${modeLabel} 방식] ${fmt(clampInt(it.amount))}`;
+		});
+		if (lines.length) {
+			memoText += (memoText ? '\n\n' : '') + '[패널티]\n' + lines.join('\n');
+		}
+	}
+	el.memoRenderBottom.textContent = memoText;
 }
 
 

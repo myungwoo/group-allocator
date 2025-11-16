@@ -20,7 +20,6 @@ const el = {
 
 	memberList: document.getElementById('member-list'),
 	newMemName: document.getElementById('new-member-name'),
-	newMemPenalty: document.getElementById('new-member-penalty'),
 	newMemExclude: document.getElementById('new-member-exclude'),
 	newMemNote: document.getElementById('new-member-note'),
 	btnAddMem: document.getElementById('btn-add-member'),
@@ -48,6 +47,11 @@ const el = {
 	kpiDistributable: document.getElementById('kpi-distributable'),
 	kpiCount: document.getElementById('kpi-count'),
 	kpiPerHead: document.getElementById('kpi-per-head'),
+	penaltyList: document.getElementById('penalty-list'),
+	newPenLabel: document.getElementById('new-penalty-label'),
+	newPenAmount: document.getElementById('new-penalty-amount'),
+	newPenMode: document.getElementById('new-penalty-mode'),
+	btnAddPenalty: document.getElementById('btn-add-penalty'),
 };
 
 // ===== 렌더/바인딩 =====
@@ -112,7 +116,7 @@ function renderIncentives() {
 			<input type="text" value="${it.label ?? ''}" aria-label="인센티브 라벨">
 			<input type="number" min="0" step="1" value="${it.amount ?? 0}" aria-label="인센티브 금액">
 			<select aria-label="인센티브 대상자"></select>
-			<button class="btn" aria-label="인센티브 삭제">삭제</button>
+			<button class="btn" aria-label="인센티브 삭제">🗑️</button>
 		`;
 		const [handle, label, amount, sel, del] = row.children;
 		// 멤버 옵션 구성
@@ -120,7 +124,7 @@ function renderIncentives() {
 		state.members.forEach((m, i) => {
 			const opt = document.createElement('option');
 			opt.value = m.id || String(i);
-			opt.textContent = m.name || `인원${i+1}`;
+			opt.textContent = m.name || `공대원${i+1}`;
 			if (it.recipientId ? it.recipientId === m.id : Number(it.recipient) === i) opt.selected = true;
 			sel.appendChild(opt);
 		});
@@ -184,6 +188,114 @@ function renderIncentives() {
 	});
 }
 
+// 패널티 항목 목록
+function renderPenaltyItems() {
+	if (!el.penaltyList) return;
+	el.penaltyList.innerHTML = '';
+	(state.penaltyItems || []).forEach((it, idx) => {
+		const row = document.createElement('div');
+		row.className = 'penalty-row';
+		row.draggable = false;
+		row.dataset.index = String(idx);
+		row.innerHTML = `
+			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
+			<input type="text" value="${it.label ?? ''}" aria-label="패널티 라벨" style="flex:1 1 100px; min-width:100px;">
+			<input type="number" min="0" step="1" value="${clampInt(it.amount) || 0}" aria-label="패널티 금액">
+			<select aria-label="패널티 지불자" style="width:100px;"></select>
+			<select aria-label="분배 방식">
+				<option value="exclude-penalized">부과 인원 제외</option>
+				<option value="exclude-self">본인 제외</option>
+				<option value="include-self">본인 포함</option>
+			</select>
+			<button class="btn" aria-label="패널티 삭제">🗑️</button>
+		`;
+		const [handle, label, amount, selPayer, selMode, del] = row.children;
+		// 멤버 옵션 구성
+		selPayer.innerHTML = '';
+		state.members.forEach((m, i) => {
+			const opt = document.createElement('option');
+			opt.value = m.id || String(i);
+			opt.textContent = m.name || `공대원${i+1}`;
+			const match = it.payerId ? it.payerId === m.id : Number(it.payer) === i;
+			if (match) opt.selected = true;
+			selPayer.appendChild(opt);
+		});
+		// 초기 값 없을 경우 첫 인원으로 자동 설정
+		if (!it.payerId && !(typeof it.payer === 'number') && state.members.length > 0) {
+			it.payerId = state.members[0].id || '0';
+			save();
+		}
+		// 모드 설정
+		if (it.mode && selMode.querySelector(`option[value="${it.mode}"]`)) {
+			selMode.value = it.mode;
+		}
+		// 입력 요소 드래그 방지
+		row.querySelectorAll('input, textarea, select, button:not(.drag-handle), label').forEach(elm => {
+			elm.setAttribute('draggable', 'false');
+		});
+		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
+		label.addEventListener('change', () => { renderOutputs(); });
+		amount.addEventListener('input', () => { it.amount = Math.max(0, clampInt(amount.value)); amount.value = it.amount; save(); renderOutputs(); });
+		amount.addEventListener('change', () => { renderOutputs(); });
+		selPayer.addEventListener('change', () => {
+			if (selPayer.value === '') {
+				if ('payerId' in it) delete it.payerId;
+				if ('payer' in it) delete it.payer;
+			} else {
+				it.payerId = selPayer.value;
+				if ('payer' in it) delete it.payer;
+			}
+			save(); renderOutputs();
+		});
+		selMode.addEventListener('change', () => {
+			it.mode = selMode.value;
+			save(); renderOutputs();
+		});
+		del.addEventListener('click', () => { state.penaltyItems.splice(idx,1); save(); renderPenaltyItems(); renderOutputs(); });
+		// DnD
+		let dragGhostPen = null;
+		handle.addEventListener('dragstart', (e) => {
+			e.dataTransfer.setData('text/plain', String(idx));
+			e.dataTransfer.effectAllowed = 'move';
+			const rect = row.getBoundingClientRect();
+			dragGhostPen = row.cloneNode(true);
+			dragGhostPen.classList.add('drag-ghost');
+			dragGhostPen.style.position = 'fixed';
+			dragGhostPen.style.top = '-1000px';
+			dragGhostPen.style.left = '-1000px';
+			dragGhostPen.style.width = rect.width + 'px';
+			dragGhostPen.style.pointerEvents = 'none';
+			document.body.appendChild(dragGhostPen);
+			const offsetX = e.clientX - rect.left;
+			const offsetY = e.clientY - rect.top;
+			if (e.dataTransfer.setDragImage) e.dataTransfer.setDragImage(dragGhostPen, offsetX, offsetY);
+		});
+		handle.addEventListener('dragend', () => {
+			if (dragGhostPen && dragGhostPen.parentNode) dragGhostPen.parentNode.removeChild(dragGhostPen);
+			dragGhostPen = null;
+		});
+		row.addEventListener('dragover', (e) => {
+			e.preventDefault();
+			row.classList.add('drag-over');
+		});
+		row.addEventListener('dragleave', () => {
+			row.classList.remove('drag-over');
+		});
+		row.addEventListener('drop', (e) => {
+			e.preventDefault();
+			row.classList.remove('drag-over');
+			const from = Number(e.dataTransfer.getData('text/plain'));
+			const to = idx;
+			if (!Number.isFinite(from) || from === to) return;
+			const [moved] = state.penaltyItems.splice(from, 1);
+			state.penaltyItems.splice(to, 0, moved);
+			save();
+			renderAllNoTabs();
+		});
+		el.penaltyList.appendChild(row);
+	});
+}
+
 // 수입 항목 목록
 function renderIncomeItems() {
 	el.incomeList.innerHTML = '';
@@ -197,7 +309,7 @@ function renderIncomeItems() {
 			<input type="text" value="${it.label ?? ''}" aria-label="수입 라벨">
 			<input type="number" min="0" step="1" value="${clampInt(it.gross) || 0}" aria-label="전체금액">
 			<input type="number" min="0" step="0.01" inputmode="decimal" value="${Number(it.feeRate || 0)}" aria-label="수수료율">
-			<button class="btn" aria-label="수입 항목 삭제">삭제</button>
+			<button class="btn" aria-label="수입 항목 삭제">🗑️</button>
 		`;
 		const [handle, label, gross, feeRate, del] = row.children;
 		// 입력 요소에서의 드래그 방지, 핸들 제외
@@ -267,25 +379,22 @@ function renderMembers() {
 		row.innerHTML = `
 			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${m.name ?? ''}" aria-label="이름">
-			<input type="number" min="0" step="1" value="${m.penalty ?? 0}" aria-label="사망 패널티">
 			<label style="display:flex; align-items:center; gap:6px; justify-content:center;"><input type="checkbox" ${m.exclude ? 'checked':''} aria-label="분배 제외"> 분배 제외</label>
 			<input type="text" value="${m.note ?? ''}" aria-label="메모">
-			<button class="btn" aria-label="공대원 삭제">삭제</button>
+			<button class="btn" aria-label="공대원 삭제">🗑️</button>
 		`;
-		const [handle, name, pen, excludeWrap, note, del] = row.children;
+		const [handle, name, excludeWrap, note, del] = row.children;
 		const exclude = excludeWrap.querySelector('input[type="checkbox"]');
 		// 텍스트/입력 요소에서의 드래그로 순서 변경 방지
 		row.querySelectorAll('input, textarea, select, button:not(.drag-handle), label').forEach(elm => {
 			elm.setAttribute('draggable', 'false');
 		});
-		name.addEventListener('input', () => { m.name = name.value; save(); renderOutputs(); renderIncentives(); });
+		name.addEventListener('input', () => { m.name = name.value; save(); renderOutputs(); renderIncentives(); renderPenaltyItems(); });
 		name.addEventListener('change', () => { save(); renderAllNoTabs(); });
-		pen.addEventListener('input', () => { m.penalty = Math.max(0, clampInt(pen.value)); pen.value = m.penalty; save(); renderOutputs(); });
-		pen.addEventListener('change', () => { renderOutputs(); });
 		exclude.addEventListener('change', () => { m.exclude = !!exclude.checked; save(); renderOutputs(); });
 		note.addEventListener('input', () => { m.note = note.value; save(); renderOutputs(); });
 		note.addEventListener('change', () => { renderOutputs(); });
-		del.addEventListener('click', () => { state.members.splice(idx,1); save(); renderMembers(); renderOutputs(); });
+		del.addEventListener('click', () => { state.members.splice(idx,1); save(); renderMembers(); renderIncentives(); renderPenaltyItems(); renderOutputs(); });
 		row.addEventListener('keydown', (e) => {
 			if (e.key === 'Delete') { state.members.splice(idx,1); save(); renderMembers(); renderOutputs(); }
 		});
@@ -358,14 +467,23 @@ el.btnAddIncome?.addEventListener('click', () => {
 	el.newIncomeLabel.focus();
 });
 el.btnAddMem.addEventListener('click', () => {
-	const name = el.newMemName.value.trim() || `인원${state.members.length+1}`;
-	const penalty = Math.max(0, clampInt(el.newMemPenalty.value));
+	const name = el.newMemName.value.trim() || `공대원${state.members.length+1}`;
 	const exclude = !!el.newMemExclude.checked;
 	const note = el.newMemNote.value.trim();
-	state.members.push({ id: genId(), name, penalty, exclude, note });
-	el.newMemName.value = ''; el.newMemPenalty.value = ''; el.newMemExclude.checked = false; el.newMemNote.value = '';
+	state.members.push({ id: genId(), name, exclude, note });
+	el.newMemName.value = ''; el.newMemExclude.checked = false; el.newMemNote.value = '';
 	save(); renderAllNoTabs();
 	el.newMemName.focus();
+});
+el.btnAddPenalty?.addEventListener('click', () => {
+	const label = el.newPenLabel.value.trim();
+	const amount = Math.max(0, clampInt(el.newPenAmount.value));
+	const mode = el.newPenMode?.value || 'exclude-penalized';
+	state.penaltyItems.push({ label, amount, mode });
+	el.newPenLabel.value = '';
+	el.newPenAmount.value = '';
+	save(); renderAllNoTabs();
+	el.newPenLabel?.focus();
 });
 // Enter로 인센티브/수입/공대원 추가 (IME 조합 중 Enter는 무시)
 const makeAddOnEnter = (btn) => (e) => {
@@ -385,8 +503,10 @@ el.newIncomeFeeRate.addEventListener('keydown', addIncomeOnEnter);
 // Enter로 공대원 추가 (IME 조합 중 Enter는 무시)
 const addMemberOnEnter = makeAddOnEnter(el.btnAddMem);
 el.newMemName.addEventListener('keydown', addMemberOnEnter);
-el.newMemPenalty.addEventListener('keydown', addMemberOnEnter);
 el.newMemNote.addEventListener('keydown', addMemberOnEnter);
+const addPenaltyOnEnter = makeAddOnEnter(el.btnAddPenalty);
+el.newPenLabel?.addEventListener('keydown', addPenaltyOnEnter);
+el.newPenAmount?.addEventListener('keydown', addPenaltyOnEnter);
 ['date','title','memo'].forEach(k => {
 	el[k].addEventListener('input', () => {
 		if (k === 'date') state.date = el.date.value || state.date;
@@ -489,6 +609,7 @@ function switchTab(id) {
 function renderAllNoTabs() {
 	bindInputs();
 	renderIncentives();
+	renderPenaltyItems();
 	renderIncomeItems();
 	renderMembers();
 	renderOutputs();

@@ -127,7 +127,7 @@ details.input-panel > summary {
 }
 .grid-2 {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	gap: 12px;
 }
 .grid-3 {
@@ -269,13 +269,13 @@ tr.total-row td.mismatch {
 .kpi .tile .value { font-size: 18px; font-weight: 800; }
 
 /* 수입 항목 행 - 반응형 보완 */
-#income-list { overflow-x: auto; }
+#income-list { overflow-x: visible; }
 .income-row {
 	display: grid;
-	grid-template-columns: 16px 1fr 130px 120px 80px;
+	grid-template-columns: 16px 1fr 130px 120px 48px;
 	gap: 8px;
 	margin-bottom: 6px;
-	min-width: 460px; /* 내부가 줄바꿈되며 깨지지 않도록 최소 너비 확보 */
+	/* 최소 폭을 제거하여 가로 스크롤 방지 */
 }
 @media (max-width: 920px) {
 	.income-row {
@@ -287,15 +287,55 @@ tr.total-row td.mismatch {
 /* 인센티브/멤버 행 스타일(인라인 스타일 제거용) */
 .incentive-row {
 	display: grid;
-	grid-template-columns: 16px 1fr 140px 1fr 80px;
+	grid-template-columns: 16px 1fr 140px 1fr 48px;
 	gap: 8px;
 	margin-bottom: 6px;
 }
 .member-row {
 	display: grid;
-	grid-template-columns: 16px minmax(150px, 1fr) 160px 110px 1fr 82px;
+	grid-template-columns: 16px minmax(150px, 1fr) 110px 1fr 48px;
 	gap: 8px;
 	margin-bottom: 6px;
+}
+
+/* 패널티 항목 행 - 컴팩트 폭 */
+#penalty-list { overflow-x: visible; }
+.penalty-row {
+	display: grid;
+	grid-template-columns: 16px minmax(100px, 0fr) 100px 80px minmax(100px, 1fr) 48px;
+	gap: 8px;
+	margin-bottom: 6px;
+	/* 최소 폭 제거로 가로 스크롤 방지 */
+}
+.penalty-row select { min-width: 0; max-width: 100%; }
+.income-row input, .income-row select, .penalty-row input, .penalty-row select { min-width: 0; }
+
+/* 입력 패널의 MEMO 섹션을 전체 높이로 채우기 */
+.memo-input-section {
+	display: grid;
+	grid-template-rows: auto 1fr; /* 제목 높이 + 나머지(텍스트 영역) */
+}
+.memo-input-section textarea {
+	height: 100%;
+	min-height: 0; /* 그리드 내부에서 축소 가능 */
+}
+
+/* 삭제 버튼 컴팩트 스타일 */
+.income-row .btn,
+.incentive-row .btn,
+.penalty-row .btn,
+.member-row .btn {
+	width: 40px;
+	padding: 6px 0;
+	text-align: center;
+}
+
+/* 탭바의 기록 삭제 버튼도 컴팩트 */
+#btn-remove-tab {
+	width: 40px;
+	padding-left: 0;
+	padding-right: 0;
+	text-align: center;
 }
 
 /* 드래그 핸들 */
@@ -335,5 +375,6 @@ tr.total-row td.mismatch {
 	@page { size: A4 landscape; margin: 12mm; }
 	.sheet, .footer, .header { break-inside: avoid; page-break-inside: avoid; }
 }
+
 
 
