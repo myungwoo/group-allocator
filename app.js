@@ -121,6 +121,12 @@ function renderIncentives() {
 		const [handle, label, amount, sel, del] = row.children;
 		// 멤버 옵션 구성
 		sel.innerHTML = '';
+		// 선택 안함 옵션
+		const noneOpt = document.createElement('option');
+		noneOpt.value = '';
+		noneOpt.textContent = '선택 안함';
+		if (!(it.recipientId) && !(Number.isFinite(Number(it.recipient)))) noneOpt.selected = true;
+		sel.appendChild(noneOpt);
 		state.members.forEach((m, i) => {
 			const opt = document.createElement('option');
 			opt.value = m.id || String(i);
@@ -137,8 +143,13 @@ function renderIncentives() {
 		amount.addEventListener('input', () => { it.amount = Math.max(0, clampInt(amount.value)); amount.value = it.amount; save(); renderOutputs(); });
 		amount.addEventListener('change', () => { renderOutputs(); });
 		sel.addEventListener('change', () => {
-			it.recipientId = sel.value;
-			if ('recipient' in it) delete it.recipient; // 레거시 인덱스 제거
+			if (sel.value === '') {
+				if ('recipientId' in it) delete it.recipientId;
+				if ('recipient' in it) delete it.recipient; // 레거시 제거
+			} else {
+				it.recipientId = sel.value;
+				if ('recipient' in it) delete it.recipient; // 레거시 인덱스 제거
+			}
 			save();
 			renderOutputs();
 		});
@@ -212,6 +223,12 @@ function renderPenaltyItems() {
 		const [handle, label, amount, selPayer, selMode, del] = row.children;
 		// 멤버 옵션 구성
 		selPayer.innerHTML = '';
+		// 선택 안함 옵션
+		const noneRow = document.createElement('option');
+		noneRow.value = '';
+		noneRow.textContent = '선택 안함';
+		if (!it.payerId && !(typeof it.payer === 'number')) noneRow.selected = true;
+		selPayer.appendChild(noneRow);
 		state.members.forEach((m, i) => {
 			const opt = document.createElement('option');
 			opt.value = m.id || String(i);
@@ -220,11 +237,6 @@ function renderPenaltyItems() {
 			if (match) opt.selected = true;
 			selPayer.appendChild(opt);
 		});
-		// 초기 값 없을 경우 첫 인원으로 자동 설정
-		if (!it.payerId && !(typeof it.payer === 'number') && state.members.length > 0) {
-			it.payerId = state.members[0].id || '0';
-			save();
-		}
 		// 모드 설정
 		if (it.mode && selMode.querySelector(`option[value="${it.mode}"]`)) {
 			selMode.value = it.mode;
