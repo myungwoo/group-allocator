@@ -1,5 +1,5 @@
 // 앱 스크립트 (ES 모듈) - 가독성 향상 및 모듈화
-import { clampInt, genId, formatDate } from './utils.js';
+import { clampInt, genId, formatDate, fmt } from './utils.js';
 import { state, tabs, save, loadTabs, newBlankState } from './state.js';
 import { renderOutputs as renderOutputsView, compute } from './render.js';
 
@@ -115,7 +115,7 @@ function renderIncentives() {
 		row.innerHTML = `
 			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${it.label ?? ''}" aria-label="인센티브 라벨">
-			<input type="number" min="0" step="1" value="${it.amount ?? 0}" aria-label="인센티브 금액">
+			<input type="text" value="${fmt(it.amount ?? 0)}" aria-label="인센티브 금액">
 			<select aria-label="인센티브 대상자"></select>
 			<button class="btn" aria-label="인센티브 삭제">🗑️</button>
 		`;
@@ -141,7 +141,15 @@ function renderIncentives() {
 		});
 		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
 		label.addEventListener('change', () => { renderOutputs(); });
-		amount.addEventListener('input', () => { it.amount = Math.max(0, clampInt(amount.value)); amount.value = it.amount; save(); renderOutputs(); });
+		amount.addEventListener('input', () => {
+			const raw = String(amount.value || '').replace(/[^\d]/g, '');
+			if (raw === '') { amount.value = ''; it.amount = 0; save(); renderOutputs(); return; }
+			const v = Math.max(0, clampInt(raw));
+			it.amount = v;
+			amount.value = fmt(v);
+			save();
+			renderOutputs();
+		});
 		amount.addEventListener('change', () => { renderOutputs(); });
 		sel.addEventListener('change', () => {
 			if (sel.value === '') {
@@ -212,7 +220,7 @@ function renderPenaltyItems() {
 		row.innerHTML = `
 			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${it.label ?? ''}" aria-label="패널티 라벨" style="flex:1 1 100px; min-width:100px;">
-			<input type="number" min="0" step="1" value="${clampInt(it.amount) || 0}" aria-label="패널티 금액">
+			<input type="text" value="${fmt(clampInt(it.amount) || 0)}" aria-label="패널티 금액">
 			<select aria-label="패널티 지불자" style="width:100px;"></select>
 			<select aria-label="분배 방식">
 				<option value="exclude-penalized">부과 인원 제외</option>
@@ -248,7 +256,14 @@ function renderPenaltyItems() {
 		});
 		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
 		label.addEventListener('change', () => { renderOutputs(); });
-		amount.addEventListener('input', () => { it.amount = Math.max(0, clampInt(amount.value)); amount.value = it.amount; save(); renderOutputs(); });
+		amount.addEventListener('input', () => {
+			const raw = String(amount.value || '').replace(/[^\d]/g, '');
+			if (raw === '') { amount.value = ''; it.amount = 0; save(); renderOutputs(); return; }
+			const v = Math.max(0, clampInt(raw));
+			it.amount = v;
+			amount.value = fmt(v);
+			save(); renderOutputs();
+		});
 		amount.addEventListener('change', () => { renderOutputs(); });
 		selPayer.addEventListener('change', () => {
 			if (selPayer.value === '') {
@@ -320,7 +335,7 @@ function renderIncomeItems() {
 		row.innerHTML = `
 			<span class="drag-handle" aria-label="순서 이동" title="순서 이동" draggable="true"></span>
 			<input type="text" value="${it.label ?? ''}" aria-label="수입 라벨">
-			<input type="number" min="0" step="1" value="${clampInt(it.gross) || 0}" aria-label="전체금액">
+			<input type="text" value="${fmt(clampInt(it.gross) || 0)}" aria-label="전체금액">
 			<input type="number" min="0" step="0.01" inputmode="decimal" value="${Number(it.feeRate || 0)}" aria-label="수수료율">
 			<button class="btn" aria-label="수입 항목 삭제">🗑️</button>
 		`;
@@ -331,7 +346,14 @@ function renderIncomeItems() {
 		});
 		label.addEventListener('input', () => { it.label = label.value; save(); renderOutputs(); });
 		label.addEventListener('change', () => { renderOutputs(); });
-		gross.addEventListener('input', () => { it.gross = clampInt(gross.value); gross.value = it.gross; save(); renderOutputs(); });
+		gross.addEventListener('input', () => {
+			const raw = String(gross.value || '').replace(/[^\d]/g, '');
+			if (raw === '') { gross.value = ''; it.gross = 0; save(); renderOutputs(); return; }
+			const v = clampInt(raw);
+			it.gross = v;
+			gross.value = fmt(v);
+			save(); renderOutputs();
+		});
 		gross.addEventListener('change', () => { renderOutputs(); });
 		feeRate.addEventListener('input', () => { it.feeRate = Number(feeRate.value || 0); save(); renderOutputs(); });
 		feeRate.addEventListener('change', () => { renderOutputs(); });
@@ -464,7 +486,7 @@ function renderMembers() {
 // 신규 항목 추가
 el.btnAddInc.addEventListener('click', () => {
 	const label = el.newIncLabel.value.trim();
-	const amount = Math.max(0, clampInt(el.newIncAmount.value));
+	const amount = Math.max(0, clampInt(String(el.newIncAmount.value || '').replace(/[^\d]/g, '')));
 	state.incentives.push({ label, amount });
 	el.newIncLabel.value = ''; el.newIncAmount.value = '';
 	save(); renderAllNoTabs();
@@ -472,7 +494,7 @@ el.btnAddInc.addEventListener('click', () => {
 });
 el.btnAddIncome?.addEventListener('click', () => {
 	const label = el.newIncomeLabel.value.trim();
-	const gross = clampInt(el.newIncomeGross.value);
+	const gross = clampInt(String(el.newIncomeGross.value || '').replace(/[^\d]/g, ''));
 	const feeRate = Number(el.newIncomeFeeRate.value || 0);
 	state.incomeItems.push({ label, gross, feeRate });
 	el.newIncomeLabel.value=''; el.newIncomeGross.value=''; el.newIncomeFeeRate.value='';
@@ -490,7 +512,7 @@ el.btnAddMem.addEventListener('click', () => {
 });
 el.btnAddPenalty?.addEventListener('click', () => {
 	const label = el.newPenLabel.value.trim();
-	const amount = Math.max(0, clampInt(el.newPenAmount.value));
+	const amount = Math.max(0, clampInt(String(el.newPenAmount.value || '').replace(/[^\d]/g, '')));
 	const mode = el.newPenMode?.value || 'exclude-penalized';
 	state.penaltyItems.push({ label, amount, mode });
 	el.newPenLabel.value = '';
@@ -520,6 +542,19 @@ el.newMemNote.addEventListener('keydown', addMemberOnEnter);
 const addPenaltyOnEnter = makeAddOnEnter(el.btnAddPenalty);
 el.newPenLabel?.addEventListener('keydown', addPenaltyOnEnter);
 el.newPenAmount?.addEventListener('keydown', addPenaltyOnEnter);
+// 금액 입력칸(신규) 콤마 포맷팅
+function attachMoneyFormatter(inputEl) {
+	if (!inputEl) return;
+	inputEl.addEventListener('input', () => {
+		const raw = String(inputEl.value || '').replace(/[^\d]/g, '');
+		if (raw === '') { inputEl.value = ''; return; }
+		const v = clampInt(raw);
+		inputEl.value = fmt(v);
+	});
+}
+attachMoneyFormatter(el.newIncAmount);
+attachMoneyFormatter(el.newIncomeGross);
+attachMoneyFormatter(el.newPenAmount);
 ['date','title','memo'].forEach(k => {
 	el[k].addEventListener('input', () => {
 		if (k === 'date') state.date = el.date.value || state.date;
@@ -649,7 +684,7 @@ function createDistributionClipboardText() {
 	lines.push(`**${formatDateClipboard(state.date)}**`);
 	for (const [amount, names] of groups) {
 		const { price, count, product } = choosePreferredPrice(amount, 5_000_000);
-		lines.push(`${price} * ${count} = ${product}`);
+		lines.push(`${fmt(price)} * ${count} = ${fmt(product)}`);
 		lines.push('');
 		for (let i = 0; i < names.length; i += 4) {
 			lines.push(names.slice(i, i + 4).join(' '));
