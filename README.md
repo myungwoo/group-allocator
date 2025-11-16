@@ -1,4 +1,4 @@
-# 알목 분배 유틸리티 🚀
+# 분배 유틸리티 🚀
 
 [![Website - Live](https://img.shields.io/badge/Website-Live-2ea44f?style=flat&logo=githubpages)](https://myungwoo.github.io/group-allocator/)
 ![Made with - Vanilla JS](https://img.shields.io/badge/Made%20with-Vanilla%20JS-f7df1e?logo=javascript&logoColor=000)
@@ -18,14 +18,16 @@
   - 키보드로도 추가(Enter)/삭제(Del)가 가능합니다.
 - **자동 계산 🧮**
   - 수입 항목이 하나라도 있으면 단일 입력 대신 합산값을 사용합니다.
-  - 수입 총액, 분배 총액, 분배 인원, 인당 기본 분배금(기본), 패널티 분배금, 최종 알목 분배금을 계산합니다.
+  - 수입 총액, 분배 총액, 분배 인원, 인당 기본 분배금(기본), 패널티 분배금, 최종 분배금을 계산합니다.
   - 결과는 표 형태로 표시됩니다.
 - **출력/공유 📤**
-  - 결과를 PNG로 저장하거나 PDF/인쇄할 수 있습니다.
-  - 인쇄 시 브라우저 설정에서 “배경 그래픽 인쇄”를 켜면 보기 좋게 출력됩니다.
+  - 결과를 PNG로 저장(다운로드)하거나 PNG로 클립보드에 복사할 수 있습니다.
+  - 별도로 PDF/인쇄도 지원합니다. 인쇄 시 브라우저 설정에서 “배경 그래픽 인쇄”를 켜면 보기 좋게 출력됩니다.
+  - PNG 복사는 브라우저의 Async Clipboard API 지원 및 보안 컨텍스트(HTTPS/localhost)에서 동작합니다.
 - **사용성 🧩**
   - 입력 패널 접기/펼치기 지원으로 화면을 깔끔하게 유지합니다.
   - 한 번에 초기화할 수 있는 기능을 제공합니다.
+  - 하단 MEMO 박스는 내용 길이에 따라 자동으로 높이가 조절됩니다.
 
 ## 폴더 구조 📁
 
