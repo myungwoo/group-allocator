@@ -602,18 +602,11 @@ function choosePreferredPrice(amount, threshold) {
 		const price = ensureInt(amount);
 		return { price, count: 1, product: price };
 	}
-	// 1) 가능한 경우, count >= 2가 되도록 하면서 price를 최대화: price = floor(amount / 2) (단, maxAllowed 이하)
-	if (amount >= 2) {
-		const price2 = Math.min(maxAllowed, ensureInt(amount / 2));
-		const count2 = Math.max(1, Math.floor(amount / price2));
-		if (count2 >= 2) {
-			return { price: price2, count: count2, product: price2 * count2 };
-		}
-	}
-	// 2) 불가하면, maxAllowed로 1회 표시
-	const price1 = Math.min(maxAllowed, ensureInt(amount));
-	const count1 = Math.max(1, Math.floor(amount / price1));
-	return { price: price1, count: count1, product: price1 * count1 };
+	// 금액을 최대한 보존하도록 k = ceil(amount / maxAllowed)
+	const k = Math.max(2, Math.ceil(amount / maxAllowed));
+	const price = ensureInt(amount / k);
+	const count = k;
+	return { price, count, product: price * count };
 }
 function createDistributionClipboardText() {
 	const result = compute(state);
