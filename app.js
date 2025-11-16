@@ -1,7 +1,7 @@
 // 앱 스크립트 (ES 모듈) - 가독성 향상 및 모듈화
 import { clampInt, genId, formatDate } from './utils.js';
 import { state, tabs, save, loadTabs, newBlankState } from './state.js';
-import { renderOutputs as renderOutputsView } from './render.js';
+import { renderOutputs as renderOutputsView, compute } from './render.js';
 
 // ===== DOM 참조 =====
 const el = {
@@ -29,6 +29,7 @@ const el = {
 	btnReset: document.getElementById('btn-reset'),
 	btnSavePng: document.getElementById('btn-save-png'),
 	btnCopyPng: document.getElementById('btn-copy-png'),
+	btnCopyText: document.getElementById('btn-copy-text'),
 	btnPrint: document.getElementById('btn-print'),
 	btnAddTab: document.getElementById('btn-add-tab'),
 	btnRemoveTab: document.getElementById('btn-remove-tab'),
@@ -571,6 +572,119 @@ el.btnCopyPng?.addEventListener('click', async () => {
 		}
 	} catch (err) {
 		console.warn('PNG clipboard copy failed:', err);
+	}
+});
+// 텍스트 복사 (분배 정보)
+function formatDateClipboard(dateStr) {
+	if (!dateStr) return '';
+	const parts = String(dateStr).split('-');
+	if (parts.length !== 3) return '';
+	const y = Number(parts[0]) || 0;
+	const m = Number(parts[1]) || 0;
+	const d = Number(parts[2]) || 0;
+	const yy = String(y).slice(2);
+	// 요일(일/월/화/수/목/금/토) - UTC 기준으로 계산해 타임존 영향 제거
+	let dow = '';
+	try {
+		const dtUtc = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+		const map = ['일','월','화','수','목','금','토'];
+		dow = map[dtUtc.getUTCDay()] || '';
+	} catch {}
+	return `${yy}. ${m}. ${d}${dow ? ` (${dow})` : ''}`;
+}
+// 금액을 표현할 때, 5,000,000 미만의 가장 큰 가격을 좌항에 두고
+// 우항은 내림한 곱(product)으로 표시
+function choosePreferredPrice(amount, threshold) {
+	const maxAllowed = Math.floor(threshold) - 1; // 4,999,999
+	const ensureInt = (x) => Math.max(1, Math.floor(x));
+	// amount가 허용 최대값 이하면 그대로 1회 표기
+	if (amount <= maxAllowed) {
+		const price = ensureInt(amount);
+		return { price, count: 1, product: price };
+	}
+	// 1) 가능한 경우, count >= 2가 되도록 하면서 price를 최대화: price = floor(amount / 2) (단, maxAllowed 이하)
+	if (amount >= 2) {
+		const price2 = Math.min(maxAllowed, ensureInt(amount / 2));
+		const count2 = Math.max(1, Math.floor(amount / price2));
+		if (count2 >= 2) {
+			return { price: price2, count: count2, product: price2 * count2 };
+		}
+	}
+	// 2) 불가하면, maxAllowed로 1회 표시
+	const price1 = Math.min(maxAllowed, ensureInt(amount));
+	const count1 = Math.max(1, Math.floor(amount / price1));
+	return { price: price1, count: count1, product: price1 * count1 };
+}
+function createDistributionClipboardText() {
+	const result = compute(state);
+	if (result?.error) return `**${formatDateClipboard(state.date)}**`;
+	const rows = result.rows || [];
+	const effective = rows
+		.map((r, idx) => ({
+			name: r.name,
+			note: r.note,
+			amount: Math.floor(Number(r.final) || 0),
+			order: idx
+		}))
+		.filter(r => r.amount > 0)
+		.sort((a, b) => a.amount - b.amount);
+	// 거의 같은 금액(±3)끼리 클러스터링하여 대표 금액으로 묶기
+	const TOL = 3;
+	const clusters = [];
+	for (let i = 0; i < effective.length; ) {
+		const start = i;
+		const anchor = effective[i].amount;
+		let j = i + 1;
+		while (j < effective.length && Math.abs(effective[j].amount - anchor) <= TOL) j++;
+		const slice = effective.slice(start, j);
+		const medianIdx = Math.floor(slice.length / 2);
+		const representative = slice[medianIdx].amount; // 실제 존재하는 금액(정확한 곱 표현 가능)
+		const names = slice
+			.slice()
+			.sort((a, b) => a.order - b.order)
+			.map(x => {
+				const nm = x.name || '';
+				const note = (x.note || '').trim();
+				return note ? `${nm}(${note})` : nm;
+			});
+		clusters.push([representative, names]);
+		i = j;
+	}
+	// 대표 금액 내림차순 정렬
+	const groups = clusters.sort((a, b) => b[0] - a[0]);
+	const lines = [];
+	lines.push(`**${formatDateClipboard(state.date)}**`);
+	for (const [amount, names] of groups) {
+		const { price, count, product } = choosePreferredPrice(amount, 5_000_000);
+		lines.push(`${price} * ${count} = ${product}`);
+		lines.push('');
+		for (let i = 0; i < names.length; i += 4) {
+			lines.push(names.slice(i, i + 4).join(' '));
+		}
+		lines.push('');
+	}
+	return lines.join('\n').trimEnd();
+}
+el.btnCopyText?.addEventListener('click', async () => {
+	try {
+		const text = createDistributionClipboardText();
+		if (navigator?.clipboard?.writeText) {
+			await navigator.clipboard.writeText(text);
+		} else {
+			const ta = document.createElement('textarea');
+			ta.value = text;
+			ta.style.position = 'fixed';
+			ta.style.left = '-9999px';
+			document.body.appendChild(ta);
+			ta.select();
+			document.execCommand('copy');
+			document.body.removeChild(ta);
+		}
+		const prev = el.btnCopyText.textContent;
+		el.btnCopyText.textContent = '복사됨';
+		setTimeout(() => { el.btnCopyText.textContent = prev; }, 1200);
+	} catch (err) {
+		console.warn('Text clipboard copy failed:', err);
 	}
 });
 el.btnPrint.addEventListener('click', () => window.print());
