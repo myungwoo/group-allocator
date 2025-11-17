@@ -685,7 +685,6 @@ function createDistributionClipboardText() {
 	for (const [amount, names] of groups) {
 		const { price, count, product } = choosePreferredPrice(amount, 5_000_000);
 		lines.push(`${fmt(price)} * ${count} = ${fmt(product)}`);
-		lines.push('');
 		for (let i = 0; i < names.length; i += 4) {
 			lines.push(names.slice(i, i + 4).join(' '));
 		}
