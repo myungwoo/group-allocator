@@ -89,8 +89,11 @@ export function compute(state) {
 		return null;
 	};
 	penaltyItems.forEach(it => {
-		const pidx = payerIndexOf(it);
-		if (pidx !== null) penalizedSet.add(pidx);
+		// "부과 인원 제외" 항목에 대해서만 제외 집합에 포함
+		if (it.mode === 'exclude-penalized') {
+			const pidx = payerIndexOf(it);
+			if (pidx !== null) penalizedSet.add(pidx);
+		}
 	});
 	for (const it of penaltyItems) {
 		const amt = it.amount;
