@@ -656,8 +656,8 @@ function createDistributionClipboardText() {
 		}))
 		.filter(r => r.amount > 0)
 		.sort((a, b) => a.amount - b.amount);
-	// 거의 같은 금액(±3)끼리 클러스터링하여 대표 금액으로 묶기
-	const TOL = 3;
+	// 거의 같은 금액(±100)끼리 클러스터링하여 대표 금액으로 묶기
+	const TOL = 100;
 	const clusters = [];
 	for (let i = 0; i < effective.length; ) {
 		const start = i;
