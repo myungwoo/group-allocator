@@ -4,6 +4,8 @@ import { useMemo, useRef } from 'react';
 
 import { createDistributionClipboardText } from '@/lib/clipboard';
 import { compute } from '@/lib/compute';
+import { normalizeAppState } from '@/lib/storage';
+import { escapeFilenameSegment, todayYmd } from '@/lib/utils';
 
 import { ActionsBar } from '@/components/ActionsBar';
 import { InputPanel } from '@/components/InputPanel';
@@ -14,7 +16,8 @@ import { buildMemoForPrint } from '@/components/utils/memo';
 import { generatePaddedPngBlob } from '@/components/utils/png';
 
 export function AllocatorApp() {
-  const { hydrated, tabs, state, setState, switchTab, addNewTab, removeActiveTab, resetCurrent } = useAllocatorState();
+  const { hydrated, tabs, state, setState, switchTab, addNewTab, addTabFromState, removeActiveTab, resetCurrent } =
+    useAllocatorState();
   const printAreaRef = useRef<HTMLDivElement | null>(null);
 
   const result = useMemo(() => compute(state), [state]);
@@ -71,6 +74,45 @@ export function AllocatorApp() {
     document.body.removeChild(ta);
   };
 
+  const exportJson = () => {
+    try {
+      const json = JSON.stringify(state, null, 2);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const ymd = state.date || todayYmd(); // YYYY-MM-DD
+      const title = escapeFilenameSegment(state.title);
+      a.download = `${ymd}-${title || 'export'}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      alert('JSON 내보내기에 실패했습니다.');
+    }
+  };
+
+  const importJsonFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const raw = JSON.parse(text) as unknown;
+      const next = normalizeAppState(raw);
+      addTabFromState(next, { activate: true });
+      const title = (next.title || '').trim();
+      alert(
+        [
+          'JSON 가져오기 완료',
+          `- 날짜: ${next.date || '(없음)'}`,
+          `- 제목: ${title || '(없음)'}`,
+          `- 멤버: ${next.members.length}명`,
+          `- 수입 항목: ${next.incomeItems.length}개`,
+          `- 인센티브: ${next.incentives.length}개`,
+          `- 패널티: ${next.penaltyItems.length}개`
+        ].join('\n')
+      );
+    } catch {
+      alert('JSON 가져오기에 실패했습니다. 파일 형식을 확인해주세요.');
+    }
+  };
+
   const printPdf = () => window.print();
 
   // SSR/CSR mismatch 방지: 로딩 전에는 최소 UI만 렌더
@@ -82,7 +124,15 @@ export function AllocatorApp() {
     <div className="container">
       <TabsBar tabs={tabs} onSwitch={switchTab} onAdd={addNewTab} onRemove={removeActiveTab} />
       <InputPanel state={state} setState={setState} />
-      <ActionsBar onReset={resetCurrent} onSavePng={savePng} onCopyPng={copyPng} onCopyText={copyText} onPrint={printPdf} />
+      <ActionsBar
+        onReset={resetCurrent}
+        onExportJson={exportJson}
+        onImportJsonFile={importJsonFile}
+        onSavePng={savePng}
+        onCopyPng={copyPng}
+        onCopyText={copyText}
+        onPrint={printPdf}
+      />
       <OutputSheet ref={printAreaRef} state={state} result={result} memoForPrint={memoForPrint} />
     </div>
   );

@@ -6,7 +6,12 @@ function normalizePenaltyMode(v: unknown): PenaltyMode {
   return v === 'exclude-self' || v === 'include-self' || v === 'exclude-penalized' ? v : 'exclude-penalized';
 }
 
-function normalizeState(raw: unknown): AppState {
+/**
+ * 외부 입력(JSON import 등)도 안전하게 받기 위한 AppState 정규화 함수
+ * - 누락 필드/잘못된 타입을 기본값으로 보정합니다.
+ * - id가 없으면 새로 생성합니다.
+ */
+export function normalizeAppState(raw: unknown): AppState {
   const base = newBlankState();
   const obj = (raw ?? {}) as Record<string, unknown>;
 
@@ -77,7 +82,7 @@ export function loadFromStorage(): { tabs: TabsState; state: AppState } {
       const active = tabs.items.find((t) => t.id === tabs.activeId) ?? tabs.items[0];
       if (active) {
         tabs.activeId = active.id;
-        return { tabs, state: normalizeState(active.data) };
+        return { tabs, state: normalizeAppState(active.data) };
       }
     } catch {
       // fallthrough

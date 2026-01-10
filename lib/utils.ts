@@ -41,6 +41,31 @@ export function todayYmd(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * 파일명 세그먼트(확장자/경로 제외)를 안전하게 만드는 escape
+ * - 공백류는 '-'로 변환
+ * - Windows에서 금지되는 문자 제거: \ / : * ? " < > |
+ * - 제어문자 제거
+ * - 끝의 '.'/공백 제거(Windows 호환)
+ */
+export function escapeFilenameSegment(input: string): string {
+  let s = String(input ?? '').trim();
+  if (!s) return '';
+  try {
+    s = s.normalize('NFKC');
+  } catch {
+    // ignore (old environments)
+  }
+  s = s.replace(/\s+/g, '-');
+  s = s.replace(/[\\/:*?"<>|]/g, '');
+  s = s.replace(/[\u0000-\u001f\u007f]/g, '');
+  s = s.replace(/-+/g, '-');
+  s = s.replace(/^[.\s-]+/, '');
+  s = s.replace(/[.\s-]+$/, '');
+  if (!s || s === '.' || s === '..') return '';
+  return s.slice(0, 80);
+}
+
 export function deepClone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T;
 }

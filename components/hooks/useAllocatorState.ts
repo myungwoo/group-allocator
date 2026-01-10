@@ -73,6 +73,14 @@ export function useAllocatorState() {
     setTabs((prev) => ({ activeId: id, items: [...prev.items, { id, date: data.date, title: data.title, data }] }));
   };
 
+  const addTabFromState = (data: AppState, opts?: { activate?: boolean }) => {
+    const id = genId('tab');
+    const cloned = deepClone(data);
+    const activate = opts?.activate ?? true;
+    setTabs((prev) => ({ activeId: activate ? id : prev.activeId, items: [...prev.items, { id, date: cloned.date, title: cloned.title, data: cloned }] }));
+    if (activate) setState(cloned);
+  };
+
   const removeActiveTab = () => {
     if (!confirm('현재 기록을 삭제할까요?')) return;
     setTabs((prev) => {
@@ -105,6 +113,7 @@ export function useAllocatorState() {
     setState,
     switchTab,
     addNewTab,
+    addTabFromState,
     removeActiveTab,
     resetCurrent
   };

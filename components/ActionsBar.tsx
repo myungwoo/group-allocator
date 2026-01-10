@@ -5,19 +5,41 @@ export function ActionsBar({
   onSavePng,
   onCopyPng,
   onCopyText,
-  onPrint
+  onPrint,
+  onExportJson,
+  onImportJsonFile
 }: {
   onReset: () => void;
   onSavePng: () => void;
   onCopyPng: () => void;
   onCopyText: () => void;
   onPrint: () => void;
+  onExportJson: () => void;
+  onImportJsonFile: (file: File) => void;
 }) {
   return (
     <div className="actions">
       <button className="btn danger" id="btn-reset" aria-label="모든 입력 초기화" onClick={onReset} type="button">
         초기화
       </button>
+      <button className="btn" id="btn-export-json" aria-label="JSON 내보내기" onClick={onExportJson} type="button">
+        JSON 내보내기
+      </button>
+      <label className="btn" id="btn-import-json" aria-label="JSON 가져오기" style={{ display: 'inline-flex', alignItems: 'center' }}>
+        JSON 가져오기
+        <input
+          type="file"
+          accept="application/json,.json"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.currentTarget.files?.[0];
+            if (!file) return;
+            onImportJsonFile(file);
+            // 같은 파일을 연속으로 선택해도 onChange가 발생하도록 초기화
+            e.currentTarget.value = '';
+          }}
+        />
+      </label>
       <button className="btn" id="btn-save-png" aria-label="PNG 저장" onClick={onSavePng} type="button">
         PNG 저장
       </button>
