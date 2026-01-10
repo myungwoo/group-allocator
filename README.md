@@ -1,10 +1,11 @@
 # 분배 유틸리티 🚀
 
 [![Website - Live](https://img.shields.io/badge/Website-Live-2ea44f?style=flat&logo=githubpages)](https://myungwoo.github.io/group-allocator/)
-![Made with - Vanilla JS](https://img.shields.io/badge/Made%20with-Vanilla%20JS-f7df1e?logo=javascript&logoColor=000)
+![Made with - Next.js](https://img.shields.io/badge/Made%20with-Next.js-000000?style=flat&logo=nextdotjs&logoColor=ffffff)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=ffffff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-바닐라 JavaScript, HTML, CSS만으로 동작하는 간단한 브라우저 전용 유틸리티 앱입니다.
+공대(파티) 분배 계산을 도와주는 **Next.js + TypeScript** 웹 유틸리티입니다.
 
 - **사이트:** [myungwoo.github.io/group-allocator](https://myungwoo.github.io/group-allocator/)
 
@@ -14,7 +15,7 @@
   - 날짜/제목, MEMO를 기록합니다.
   - 수입 항목/인센티브 항목을 추가할 수 있으며, 금액은 0 이상의 정수만 허용됩니다.
   - 공대원 목록을 관리하고, 특정 인원을 분배에서 제외할 수 있습니다.
-  - 사망 패널티(음수 불가)를 인원별로 설정할 수 있습니다.
+  - 패널티 항목을 추가하고, **지불자** 및 **분배 방식**을 선택할 수 있습니다.
   - 키보드로도 추가(Enter)/삭제(Del)가 가능합니다.
 - **자동 계산 🧮**
   - 수입 항목이 하나라도 있으면 단일 입력 대신 합산값을 사용합니다.
@@ -29,31 +30,15 @@
   - 한 번에 초기화할 수 있는 기능을 제공합니다.
   - 하단 MEMO 박스는 내용 길이에 따라 자동으로 높이가 조절됩니다.
 
-## 폴더 구조 📁
-
-- `index.html` — 앱 엔트리
-- `styles.css` — 전역 스타일
-- `app.js` — 부트스트랩 및 이벤트 바인딩
-- `render.js` — DOM 렌더링 유틸리티
-- `state.js` — 간단 상태 관리 헬퍼
-- `utils.js` — 공용 헬퍼 함수
-
-## 시작하기 🏁
-
-방법 1) 파일 직접 열기
-`index.html`을 브라우저로 바로 여세요.
-
-방법 2) 간단 서버로 제공(권장, file:// CORS 이슈 회피)
-
-Using Python:
+## 개발 🛠️
 
 ```bash
-python3 -m http.server 5173
+npm install
+npm run dev
 ```
 
-그다음 브라우저에서 `http://localhost:5173` 로 접속하세요.
+브라우저에서 `http://localhost:3000` 으로 접속하세요.
 
-## 개발 워크플로우 🛠️
+## 저장 방식 💾
 
-- JS/CSS/HTML 파일을 바로 수정하고 새로고침하면 반영됩니다.
-- 별도의 빌드 단계는 필요하지 않습니다.
+- 브라우저 `localStorage`에 탭(기록) 단위로 저장합니다.
