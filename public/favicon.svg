@@ -17,7 +17,7 @@
   <g filter="url(#shadow)">
     <circle cx="32" cy="32" r="28" fill="url(#g)" stroke="#DB8E00" stroke-width="2"/>
     <circle cx="32" cy="32" r="22" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" />
-    <text x="32" y="39" text-anchor="middle" font-size="28" font-weight="700" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" fill="#ffffff">₩</text>
+    <text x="32" y="32" text-anchor="middle" dominant-baseline="central" font-size="28" font-weight="700" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" fill="#ffffff">₩</text>
   </g>
 </svg>
 
