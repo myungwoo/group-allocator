@@ -1,11 +1,6 @@
 import type { AppState, Member, PenaltyMode } from '@/lib/types';
+import { PENALTY_MODE_LABEL } from '@/lib/penalty';
 import { clampInt, formatDate } from '@/lib/utils';
-
-const PENALTY_MODE_LABEL: Record<PenaltyMode, string> = {
-  'exclude-penalized': '부과 인원 제외',
-  'exclude-self': '본인 제외',
-  'include-self': '본인 포함'
-};
 
 export type ComputeRow = {
   name: string;
