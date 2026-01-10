@@ -63,7 +63,15 @@ export function useAllocatorState() {
     if (id === tabs.activeId) return;
     const target = tabs.items.find((t) => t.id === id);
     if (!target) return;
-    setTabs((prev) => ({ ...prev, activeId: id }));
+    // "최근 사용" 기준 정렬을 위해 선택된 탭을 맨 뒤로 이동합니다.
+    setTabs((prev) => {
+      const idx = prev.items.findIndex((t) => t.id === id);
+      if (idx < 0) return prev;
+      const nextItems = prev.items.slice();
+      const [picked] = nextItems.splice(idx, 1);
+      nextItems.push(picked!);
+      return { ...prev, activeId: id, items: nextItems };
+    });
     setState(deepClone(target.data));
   };
 
