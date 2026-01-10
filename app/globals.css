@@ -509,6 +509,8 @@ tr.total-row td.mismatch {
   margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
+  display: grid;
+  gap: 2px;
 }
 .modal-empty {
   color: var(--muted);

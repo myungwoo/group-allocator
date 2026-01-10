@@ -1,7 +1,7 @@
 'use client';
 
 import type { TabsState } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { fmt, formatDate } from '@/lib/utils';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 function tabLabel(t: { date: string; title: string }) {
@@ -18,6 +18,36 @@ function normalizeSearch(s: string): string {
 
 function normalizeDigits(s: string): string {
   return String(s ?? '').replace(/[^\d]/g, '');
+}
+
+function tabMetaLines(t: {
+  data: {
+    members: { exclude: boolean }[];
+    incomeItems: { gross: number; feeRate: number }[];
+    incentives: { amount: number }[];
+    penaltyItems: { amount: number }[];
+  };
+}) {
+  const members = t.data?.members ?? [];
+  const distributedCount = members.filter((m) => !m.exclude).length;
+
+  const incomeItems = t.data?.incomeItems ?? [];
+  const grossIncome = incomeItems.reduce((acc, it) => acc + Number(it.gross || 0), 0);
+
+  // compute.ts의 로직과 동일하게: fee는 floor(gross * rate%), net은 max(0, gross-fee)
+  const netIncome = incomeItems.reduce((acc, it) => {
+    const g = Math.floor(Number(it.gross || 0));
+    const fr = Number(it.feeRate || 0);
+    const fee = Math.floor(g * (fr / 100));
+    return acc + Math.max(0, g - fee);
+  }, 0);
+  const incentiveTotal = (t.data?.incentives ?? []).reduce((acc, it) => acc + Math.max(0, Math.floor(Number(it.amount || 0))), 0);
+  const distributableBase = Math.max(0, netIncome - incentiveTotal);
+  const avgPerPerson = distributedCount > 0 ? Math.floor(distributableBase / distributedCount) : 0;
+
+  const totalPenalty = (t.data?.penaltyItems ?? []).reduce((acc, it) => acc + Number(it.amount || 0), 0);
+
+  return [`분배 인원 ${distributedCount}명 · 총 수입 ${fmt(grossIncome)} · 총 패널티 ${fmt(totalPenalty)} · 평균 인당 ${fmt(avgPerPerson)}`];
 }
 
 export function TabsBar({
@@ -158,6 +188,9 @@ export function TabsBar({
               <div className="modal-list" role="list">
                 {filteredItems.length ? (
                   filteredItems.map((t) => (
+                    (() => {
+                      const meta = tabMetaLines(t);
+                      return (
                     <button
                       key={t.id}
                       type="button"
@@ -169,8 +202,12 @@ export function TabsBar({
                       title={tabLabel(t)}
                     >
                       <div className="modal-item-title">{tabLabel(t)}</div>
-                      <div className="modal-item-meta">{t.date || ''}</div>
+                      <div className="modal-item-meta">
+                        {meta.map((m, idx) => <div key={idx}>{m}</div>)}
+                      </div>
                     </button>
+                      );
+                    })()
                   ))
                 ) : (
                   <div className="modal-empty">검색 결과가 없습니다.</div>
