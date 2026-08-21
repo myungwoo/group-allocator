@@ -238,10 +238,11 @@ export function InputPanel({
                 {perPerson ? <Chip>인당 {fmt(perPerson)}</Chip> : null}
               </>
             }
-            hint="Enter 로 다음 행 추가, Alt+↑/↓ 로 순서 이동. 순서는 나머지 1원을 앞에서부터 배분할 때 씁니다."
+            hint="Enter 로 다음 행 추가, Alt+↑/↓ 로 순서 이동. 순서는 나머지 1원을 앞에서부터 배분할 때 쓰고, 두 열일 때는 좌→우 순서입니다."
           >
             <RowList
               variant="member"
+              split
               columns={['이름', '메모', '분배 제외']}
               count={state.members.length}
               empty="공대원이 없습니다. 최소 1명은 있어야 계산됩니다."

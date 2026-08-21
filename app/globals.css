@@ -684,6 +684,11 @@ input[type='checkbox'] {
 /* --------------------------------------------------------------------------
    [1] 행 리스트
    -------------------------------------------------------------------------- */
+.rows-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 .rows {
   display: grid;
   gap: 4px;
@@ -706,6 +711,11 @@ input[type='checkbox'] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 두 번째 머리글은 두 열로 나뉠 때만 씁니다. 안 감추면 머리글이 세로로 하나 더 쌓입니다.
+   `.row { display: grid }` 뒤에 와야 합니다 — 특이성이 같아서 소스 순서로 결정됩니다. */
+.row--head-dup {
+  display: none;
 }
 .row.is-drag-over {
   outline: 2px dashed var(--ui-accent);
@@ -769,6 +779,9 @@ input[type='checkbox'] {
   color: var(--ui-dim);
 }
 .row-add {
+  /* 부모가 grid 일 때(justify-self)와 flex 열일 때(align-self) 둘 다 필요합니다.
+     하나만 적어 두면 부모가 바뀌는 순간 조용히 전체 폭으로 늘어납니다. */
+  align-self: flex-start;
   justify-self: start;
   display: inline-flex;
   align-items: center;
@@ -885,6 +898,20 @@ input[type='checkbox'] {
 /* --------------------------------------------------------------------------
    [1] 좁은 화면
    -------------------------------------------------------------------------- */
+/* 공대원 목록은 넓은 화면에서 두 열로 나눕니다. 이름·메모만 있는 행이라 한 열로 두면
+   양쪽이 200px 씩 늘어나고 세로로만 길어집니다.
+   1100px 부터인 이유: 그보다 좁으면 한 열이 500px 아래로 내려가 이름·메모 칸이 답답해집니다.
+   행 배치는 그리드 기본 흐름(행 우선)이라 읽는 순서 = 실제 순서입니다. */
+@media (min-width: 1100px) {
+  .rows--split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 16px;
+  }
+  .rows--split .row--head-dup {
+    display: grid;
+  }
+}
+
 /* 카드를 둘씩 짝지어 폭을 채웁니다. 한 카드가 패널 폭을 혼자 쓰면 금액·수수료율처럼
    폭이 고정된 칸은 그대로인데 라벨 칸만 커져서 오른쪽이 비어 보입니다.
    MEMO 는 패널티와 함께 둡니다 — 출력 MEMO 에 패널티 목록이 붙기도 하고, 공대원
