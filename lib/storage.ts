@@ -1,4 +1,4 @@
-import { TABS_KEY } from '@/lib/constants';
+import { LEGACY_TABS_KEY, TABS_KEY } from '@/lib/constants';
 import type { AppState, PenaltyMode, TabsState } from '@/lib/types';
 import { deepClone, genId, newBlankState } from '@/lib/utils';
 
@@ -71,9 +71,24 @@ export function normalizeAppState(raw: unknown): AppState {
   };
 }
 
+/**
+ * 저장된 탭 데이터를 읽습니다.
+ *
+ * 접두어 붙은 키를 먼저 보고, 비어 있으면 접두어 없던 예전 키에서 한 번 옮겨 옵니다.
+ * 예전 키는 지우지 않습니다 — 배포를 되돌릴 일이 생겨도 저장이 남아 있어야 합니다.
+ */
+function readTabsRaw(): string | null {
+  const raw = localStorage.getItem(TABS_KEY);
+  if (raw !== null) return raw;
+
+  const legacyRaw = localStorage.getItem(LEGACY_TABS_KEY);
+  if (legacyRaw !== null) localStorage.setItem(TABS_KEY, legacyRaw);
+  return legacyRaw;
+}
+
 export function loadFromStorage(): { tabs: TabsState; state: AppState } {
   // Next.js SSR에서는 localStorage가 없으니, 이 함수는 클라이언트에서만 호출해야 합니다.
-  const rawTabs = localStorage.getItem(TABS_KEY);
+  const rawTabs = readTabsRaw();
   if (rawTabs) {
     try {
       const obj = JSON.parse(rawTabs) as TabsState;
