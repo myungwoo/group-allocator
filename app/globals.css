@@ -374,7 +374,9 @@ input[type='checkbox'] {
 }
 .rec-main {
   display: flex;
-  align-items: baseline;
+  /* center 여야 합니다. baseline 은 한 줄 flex 에서 줄 자체를 위쪽에 붙여서
+     날짜·제목이 칩 상단에 몰립니다. */
+  align-items: center;
   gap: 7px;
   min-width: 0;
   padding: 0 4px 0 11px;
@@ -399,6 +401,8 @@ input[type='checkbox'] {
 }
 .rec-close {
   flex: none;
+  display: grid;
+  place-items: center;
   width: 26px;
   padding: 0;
   border: 0;
@@ -645,7 +649,7 @@ input[type='checkbox'] {
 }
 .card--memo textarea {
   height: 100%;
-  min-height: 132px;
+  min-height: 152px;
 }
 
 /* --------------------------------------------------------------------------
@@ -683,11 +687,6 @@ input[type='checkbox'] {
   background: var(--ui-chip);
 }
 
-/* 패널 폭을 다 쓰는 카드(수입)에서 행까지 늘리면 라벨 칸만 커집니다. */
-.panel-body > .card .rows {
-  max-width: 780px;
-}
-
 /* 열 폭. 머리글(.row--head)과 행이 같은 클래스를 쓰므로 자동으로 맞습니다. */
 .row--income {
   grid-template-columns: 18px minmax(0, 1fr) 142px 92px 30px;
@@ -698,8 +697,10 @@ input[type='checkbox'] {
 .row--penalty {
   grid-template-columns: 18px minmax(0, 1fr) 104px minmax(84px, 0.7fr) minmax(96px, 0.85fr) 30px;
 }
+/* 이름 · 메모 · 분배 제외 · 삭제 순서. 체크박스를 삭제 버튼 옆으로 붙여 두면
+   이름과 메모가 나란히 놓여 읽기 쉽습니다. */
 .row--member {
-  grid-template-columns: 18px minmax(0, 1.1fr) 78px minmax(0, 1fr) 30px;
+  grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) 84px 30px;
 }
 
 /* 숫자 칸 머리글은 오른쪽, 체크박스 칸은 가운데로 붙입니다. */
@@ -714,7 +715,7 @@ input[type='checkbox'] {
 .row--head.row--income > span:nth-child(4) {
   padding-right: 24px;
 }
-.row--head.row--member > span:nth-child(3) {
+.row--head.row--member > span:nth-child(4) {
   text-align: center;
 }
 
@@ -855,12 +856,16 @@ input[type='checkbox'] {
 /* --------------------------------------------------------------------------
    [1] 좁은 화면
    -------------------------------------------------------------------------- */
+/* 카드를 둘씩 짝지어 폭을 채웁니다. 한 카드가 패널 폭을 혼자 쓰면 금액·수수료율처럼
+   폭이 고정된 칸은 그대로인데 라벨 칸만 커져서 오른쪽이 비어 보입니다.
+   MEMO 는 패널티와 함께 둡니다 — 출력 MEMO 에 패널티 목록이 붙기도 하고, 공대원
+   목록(가장 긴 리스트) 옆에 두면 빈 텍스트 상자만 길게 늘어납니다. */
 @media (min-width: 981px) {
-  .panel-row--items {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  .panel-row--income {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .panel-row--members {
-    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  .panel-row--penalty {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   }
 }
 

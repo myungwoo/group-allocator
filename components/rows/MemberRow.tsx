@@ -44,15 +44,6 @@ export function MemberRow({
         onChange={(e) => onChange({ ...member, name: e.target.value })}
         onKeyDown={onKeyDownEnter}
       />
-      <label className="row-check">
-        <input
-          type="checkbox"
-          checked={!!member.exclude}
-          aria-label="분배 제외"
-          onChange={(e) => onChange({ ...member, exclude: e.target.checked })}
-        />
-        <span className="row-check-text">분배 제외</span>
-      </label>
       <input
         className="inp"
         type="text"
@@ -62,6 +53,15 @@ export function MemberRow({
         onChange={(e) => onChange({ ...member, note: e.target.value })}
         onKeyDown={onKeyDownEnter}
       />
+      <label className="row-check">
+        <input
+          type="checkbox"
+          checked={!!member.exclude}
+          aria-label="분배 제외"
+          onChange={(e) => onChange({ ...member, exclude: e.target.checked })}
+        />
+        <span className="row-check-text">분배 제외</span>
+      </label>
       <button className="icon-btn icon-btn--danger" aria-label="공대원 삭제" title="삭제" onClick={onDelete} type="button">
         <Icon name="trash" />
       </button>

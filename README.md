@@ -45,7 +45,10 @@
 
 ```bash
 npm install
-npm run dev
+npm run dev        # 개발 서버
+npm run lint       # ESLint
+npm run typecheck  # 타입 검사
+npm run build      # 정적 내보내기 → out/
 ```
 
 브라우저에서 `http://localhost:3000` 으로 접속하세요.

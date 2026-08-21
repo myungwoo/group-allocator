@@ -110,40 +110,40 @@ export function InputPanel({
 
       {open ? (
         <div className="panel-body" id="panel-body">
-          <Section
-            title="수입 항목"
-            chips={
-              <>
-                <Chip>{state.incomeItems.length}건</Chip>
-                <Chip>수수료 제외 {fmt(incomeSum.net)}</Chip>
-              </>
-            }
-            hint="수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다."
-          >
-            <RowList
-              variant="income"
-              columns={['라벨', '전체금액', '수수료율']}
-              count={state.incomeItems.length}
-              empty="수입 항목이 없습니다. 먼저 판 금액을 넣어 주세요."
-              addLabel="수입 항목 추가"
-              onAdd={addIncome}
+          <div className="panel-row panel-row--income">
+            <Section
+              title="수입 항목"
+              chips={
+                <>
+                  <Chip>{state.incomeItems.length}건</Chip>
+                  <Chip>수수료 제외 {fmt(incomeSum.net)}</Chip>
+                </>
+              }
+              hint="수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다."
             >
-              {state.incomeItems.map((it, idx) => (
-                <IncomeRow
-                  key={it.id}
-                  item={it}
-                  index={idx}
-                  focused={focusId === it.id}
-                  onChange={income.update}
-                  onDelete={() => income.remove(it.id)}
-                  onMove={income.move}
-                  onEnter={idx === state.incomeItems.length - 1 ? addIncome : undefined}
-                />
-              ))}
-            </RowList>
-          </Section>
+              <RowList
+                variant="income"
+                columns={['라벨', '전체금액', '수수료율']}
+                count={state.incomeItems.length}
+                empty="수입 항목이 없습니다. 먼저 판 금액을 넣어 주세요."
+                addLabel="수입 항목 추가"
+                onAdd={addIncome}
+              >
+                {state.incomeItems.map((it, idx) => (
+                  <IncomeRow
+                    key={it.id}
+                    item={it}
+                    index={idx}
+                    focused={focusId === it.id}
+                    onChange={income.update}
+                    onDelete={() => income.remove(it.id)}
+                    onMove={income.move}
+                    onEnter={idx === state.incomeItems.length - 1 ? addIncome : undefined}
+                  />
+                ))}
+              </RowList>
+            </Section>
 
-          <div className="panel-row panel-row--items">
             <Section
               title="인센티브 항목"
               chips={
@@ -177,7 +177,9 @@ export function InputPanel({
                 ))}
               </RowList>
             </Section>
+          </div>
 
+          <div className="panel-row panel-row--penalty">
             <Section
               title="패널티 항목"
               chips={
@@ -211,42 +213,6 @@ export function InputPanel({
                 ))}
               </RowList>
             </Section>
-          </div>
-
-          <div className="panel-row panel-row--members">
-            <Section
-              title="공대원 목록"
-              chips={
-                <>
-                  <Chip>{state.members.length}명</Chip>
-                  {includedCount === state.members.length ? null : <Chip>분배 대상 {includedCount}명</Chip>}
-                  {perPerson ? <Chip>인당 {fmt(perPerson)}</Chip> : null}
-                </>
-              }
-              hint="Enter 로 다음 행 추가, Alt+↑/↓ 로 순서 이동. 순서는 나머지 1원을 앞에서부터 배분할 때 씁니다."
-            >
-              <RowList
-                variant="member"
-                columns={['이름', '분배 제외', '메모']}
-                count={state.members.length}
-                empty="공대원이 없습니다. 최소 1명은 있어야 계산됩니다."
-                addLabel="공대원 추가"
-                onAdd={addMember}
-              >
-                {state.members.map((m, idx) => (
-                  <MemberRow
-                    key={m.id}
-                    member={m}
-                    index={idx}
-                    focused={focusId === m.id}
-                    onChange={members.update}
-                    onDelete={() => members.remove(m.id)}
-                    onMove={members.move}
-                    onEnter={idx === state.members.length - 1 ? addMember : undefined}
-                  />
-                ))}
-              </RowList>
-            </Section>
 
             <Section title="MEMO" className="card--memo" hint="출력물 오른쪽 아래 MEMO 칸에 그대로 들어갑니다.">
               <textarea
@@ -259,6 +225,40 @@ export function InputPanel({
               />
             </Section>
           </div>
+
+          <Section
+            title="공대원 목록"
+            chips={
+              <>
+                <Chip>{state.members.length}명</Chip>
+                {includedCount === state.members.length ? null : <Chip>분배 대상 {includedCount}명</Chip>}
+                {perPerson ? <Chip>인당 {fmt(perPerson)}</Chip> : null}
+              </>
+            }
+            hint="Enter 로 다음 행 추가, Alt+↑/↓ 로 순서 이동. 순서는 나머지 1원을 앞에서부터 배분할 때 씁니다."
+          >
+            <RowList
+              variant="member"
+              columns={['이름', '메모', '분배 제외']}
+              count={state.members.length}
+              empty="공대원이 없습니다. 최소 1명은 있어야 계산됩니다."
+              addLabel="공대원 추가"
+              onAdd={addMember}
+            >
+              {state.members.map((m, idx) => (
+                <MemberRow
+                  key={m.id}
+                  member={m}
+                  index={idx}
+                  focused={focusId === m.id}
+                  onChange={members.update}
+                  onDelete={() => members.remove(m.id)}
+                  onMove={members.move}
+                  onEnter={idx === state.members.length - 1 ? addMember : undefined}
+                />
+              ))}
+            </RowList>
+          </Section>
         </div>
       ) : null}
     </section>

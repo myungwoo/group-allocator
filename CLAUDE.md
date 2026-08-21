@@ -4,13 +4,19 @@
 데이터는 전부 브라우저에 남습니다.
 
 ```bash
-npm run dev              # 개발 서버 (http://localhost:3000)
-npx tsc --noEmit         # 타입 검사
-npm run build            # 정적 내보내기 → out/ (타입 검사도 같이 돕니다)
+npm run dev         # 개발 서버 (http://localhost:3000)
+npm run lint        # ESLint (저장소 전체)
+npm run typecheck   # tsc --noEmit
+npm run build       # 정적 내보내기 → out/ (타입 검사도 같이 돕니다)
 ```
 
-`npm run lint` 은 이 리포에 ESLint 설정이 없어서 대화형 설치 안내로 빠집니다. 검사는
-`npx tsc --noEmit` 이나 `npm run build` 로 하세요.
+`npm run dev` 를 띄운 채로 `npm run build` 를 돌리면 `.next` 를 서로 덮어써서 개발
+서버가 청크 404 를 냅니다. 빌드했으면 개발 서버를 다시 띄우세요.
+
+ESLint 는 flat config(`eslint.config.mjs`)를 씁니다. 규칙 세트는 다른 메이플랜드
+유틸들과 같은 `next/core-web-vitals` + `next/typescript` 입니다. `next lint` 를 쓰지 않는
+이유는 Next.js 16 에서 제거될 예정이고, 정해진 디렉터리만 검사해서 사각지대가 생기기
+때문입니다 — 파일에 적어 뒀습니다.
 
 ## 화면은 두 부분입니다
 
@@ -128,6 +134,10 @@ lib/
 - **금액 입력은 `MoneyInput`** 을 씁니다. 0 을 빈 칸으로 보여 주고, 콤마가 다시 붙어도
   캐럿을 제자리에 돌려놓습니다(`useLayoutEffect` 로 합니다 — `requestAnimationFrame` 은
   React 가 값을 다시 쓰기 전에 돌아서 캐럿이 맨 뒤로 밀립니다).
+- **카드는 둘씩 짝지어 놓습니다**(`.panel-row--income`, `.panel-row--penalty`). 카드 하나가
+  패널 폭을 혼자 쓰면 금액·수수료율처럼 폭이 고정된 칸은 그대로인데 라벨 칸만 커져서
+  오른쪽이 비어 보입니다. 공대원 목록만 예외로 전체 폭을 쓰는데, 이름과 메모 둘 다
+  유동 폭이라 표처럼 채워집니다.
 - **행 리스트는 `RowList` + `.row--{variant}`** 로 만듭니다. 컬럼 머리글과 행이 **같은
   그리드 클래스**를 쓰기 때문에 열이 저절로 맞습니다. 머리글 없이 입력칸만 늘어놓으면
   어느 칸이 금액인지 알 수 없습니다 — 그게 예전 화면의 가장 큰 불편이었습니다.
@@ -140,3 +150,6 @@ lib/
   예전에는 이름을 고치다 Delete 를 누르면 행이 통째로 사라졌습니다.
 - 되돌릴 수 없는 동작(기록 삭제, 초기화)은 `confirm` 으로 한 번 묻습니다. 성공/실패
   알림은 `useToast` 로 하세요 — `alert` 은 흐름을 끊습니다.
+- **높이가 정해진 flex 칸에 `align-items: baseline` 을 쓰지 마세요.** 한 줄 flex 에서는
+  줄 자체가 위쪽에 붙어서 글자가 상단에 몰립니다(기록 칩에서 겪었습니다). 세로 가운데가
+  필요하면 `center` 입니다.
