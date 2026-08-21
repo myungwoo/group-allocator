@@ -1,46 +1,58 @@
 'use client';
 
 import type { IncomeItem } from '@/lib/types';
-import { fmt, parseMoneyInput } from '@/lib/utils';
-import { DragHandle, useRowDnd } from '@/components/rows/dnd';
+import { Icon } from '@/components/ui/Icon';
+import { MoneyInput, PercentInput } from '@/components/ui/NumberInputs';
+import { DragHandle, useRowAutoFocus, useRowDnd } from '@/components/rows/dnd';
 
 export function IncomeRow({
   item,
   index,
+  focused,
   onChange,
   onDelete,
-  onMove
+  onMove,
+  onEnter
 }: {
   item: IncomeItem;
   index: number;
+  focused: boolean;
   onChange: (next: IncomeItem) => void;
   onDelete: () => void;
   onMove: (from: number, to: number) => void;
+  onEnter?: () => void;
 }) {
-  const { over, rowProps } = useRowDnd(index, onMove);
+  const { over, rowProps } = useRowDnd(index, onMove, onDelete);
+  const firstRef = useRowAutoFocus(focused);
+
   return (
-    <div className={`income-row${over ? ' drag-over' : ''}`} draggable={false} {...rowProps}>
+    <div className={`row row--income${over ? ' is-drag-over' : ''}`} {...rowProps}>
       <DragHandle index={index} />
-      <input type="text" value={item.label ?? ''} aria-label="수입 라벨" onChange={(e) => onChange({ ...item, label: e.target.value })} />
       <input
+        ref={firstRef}
+        className="inp inp--label"
         type="text"
-        value={fmt(Math.max(0, Math.floor(item.gross || 0)))}
-        aria-label="전체금액"
-        onChange={(e) => onChange({ ...item, gross: parseMoneyInput(e.target.value) })}
+        value={item.label ?? ''}
+        placeholder="라벨(선택)"
+        aria-label="수입 라벨"
+        onChange={(e) => onChange({ ...item, label: e.target.value })}
       />
-      <input
-        type="number"
-        min={0}
-        step={0.01}
-        inputMode="decimal"
+      <MoneyInput
+        value={item.gross}
+        placeholder="전체금액"
+        ariaLabel="전체금액"
+        onChange={(gross) => onChange({ ...item, gross })}
+        onEnter={onEnter}
+      />
+      <PercentInput
         value={Number(item.feeRate || 0)}
-        aria-label="수수료율"
-        onChange={(e) => onChange({ ...item, feeRate: Number(e.target.value || 0) })}
+        ariaLabel="수수료율(%)"
+        onChange={(feeRate) => onChange({ ...item, feeRate })}
+        onEnter={onEnter}
       />
-      <button className="btn" aria-label="수입 항목 삭제" onClick={onDelete} type="button">
-        🗑️
+      <button className="icon-btn icon-btn--danger" aria-label="수입 항목 삭제" title="삭제" onClick={onDelete} type="button">
+        <Icon name="trash" />
       </button>
     </div>
   );
 }
-
