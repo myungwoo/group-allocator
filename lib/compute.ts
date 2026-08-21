@@ -1,6 +1,24 @@
-import type { AppState, Member, PenaltyMode } from '@/lib/types';
+import type { AppState, IncomeItem, Member, PenaltyMode } from '@/lib/types';
 import { PENALTY_MODE_LABEL } from '@/lib/penalty';
 import { clampInt, formatDate } from '@/lib/utils';
+
+/**
+ * 수입 항목 합산 (전체금액 / 수수료 제외 금액).
+ *
+ * 수수료는 항목별로 내림합니다. 이 계산이 계산기·입력 패널·기록 목록 세 곳에서
+ * 필요해서 함수로 빼 두었습니다. 복사해 쓰면 반드시 어긋납니다.
+ */
+export function sumIncome(items: IncomeItem[] | undefined | null): { gross: number; net: number } {
+  let gross = 0;
+  let net = 0;
+  for (const item of Array.isArray(items) ? items : []) {
+    const g = clampInt(item.gross);
+    const feeByRate = Math.floor(g * (Number(item.feeRate || 0) / 100));
+    gross += g;
+    net += Math.max(0, g - feeByRate);
+  }
+  return { gross, net };
+}
 
 export type ComputeRow = {
   name: string;
@@ -63,19 +81,7 @@ export function compute(state: AppState): ComputeResult {
   }
 
   // 수입(수수료 포함) 합산
-  let gross = 0;
-  let netIncome = 0;
-  const incomeItems = Array.isArray(state?.incomeItems) ? state.incomeItems : [];
-  if (incomeItems.length > 0) {
-    incomeItems.forEach((item) => {
-      const g = clampInt(item.gross);
-      const fr = Number(item.feeRate || 0);
-      const feeByRate = Math.floor(g * (fr / 100));
-      const net = Math.max(0, g - feeByRate);
-      gross += g;
-      netIncome += net;
-    });
-  }
+  const { gross, net: netIncome } = sumIncome(state?.incomeItems);
 
   // 인센티브
   const incentivesRaw = Array.isArray(state?.incentives) ? state.incentives : [];

@@ -1,11 +1,23 @@
-/* 기존 styles.css를 Next 전역 스타일로 이관 */
+/* ============================================================================
+   이 파일은 두 구역으로 나뉩니다.
+
+   [1] 앱 크롬  — 헤더 / 기록 바 / 입력 패널 / 툴바. 화면에서만 보이고 인쇄·PNG 에는
+                 들어가지 않습니다. 마음대로 고쳐도 됩니다.
+   [2] 출력 시트 — `#printArea` 안쪽. PNG 저장·복사와 인쇄 결과물이 바로 이 픽셀입니다.
+                 여기 값을 건드리면 남이 받은 분배표 모양이 바뀝니다. 건드리지 마세요.
+
+   두 구역은 색 토큰도 따로 씁니다. 크롬은 `--ui-*`, 시트는 접두어 없는 것들입니다.
+   ========================================================================= */
+
+/* --------------------------------------------------------------------------
+   [1] 토큰
+   -------------------------------------------------------------------------- */
 :root {
-  --bg: #ffffff;
+  /* 출력 시트 색 — 결과물에 그대로 찍힙니다. */
   --text: #1b1f23;
   --muted: #6b7280;
   --line: #d1d5db;
   --line-strong: #111827;
-  --brand: #111827;
   --pink: #fde2e7;
   --yellow: #fff2cc;
   --sky: #e6f4ff;
@@ -13,18 +25,47 @@
   --total-bg: #e5e7eb;
   --memo-bg: #f3f4f6;
   --danger: #c53030;
-  --accent: #2563eb;
+
+  /* 앱 크롬 색 — 화면 전용. */
+  --ui-page: #f4f5f7;
+  --ui-surface: #ffffff;
+  --ui-surface-2: #fafbfc;
+  --ui-border: #e6e8ec;
+  --ui-border-2: #d8dbe2;
+  --ui-border-3: #c2c7d0;
+  --ui-text: #16181d;
+  --ui-dim: #6a7280;
+  --ui-placeholder: #a6acb8;
+  --ui-hover: #f1f2f5;
+  --ui-chip: #eef0f4;
+  --ui-accent: #2f62f4;
+  --ui-accent-hover: #2452d8;
+  --ui-accent-weak: #edf2ff;
+  --ui-ring: rgba(47, 98, 244, 0.16);
+  --ui-danger: #c8372b;
+  --ui-danger-weak: #fdf1f0;
+  --ui-danger-border: #e8b4ae;
+  --ui-warn-text: #8a5a08;
+  --ui-warn-weak: #fdf5e4;
+  --ui-warn-border: #e5c67f;
+
+  --ui-h: 34px;
+  --ui-radius: 10px;
+  --ui-radius-lg: 14px;
+  --ui-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ui-shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.18);
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* 폰트와 기준 크기는 출력 시트도 물려받습니다. 바꾸면 결과물 글자가 바뀝니다. */
 html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: var(--ui-page);
   color: var(--text);
   font-family:
     Pretendard,
@@ -51,183 +92,896 @@ textarea {
 
 .container {
   max-width: 1200px;
-  margin: 20px auto;
-  padding: 0 16px 40px;
+  margin: 0 auto;
+  padding: 20px 16px 56px;
 }
 
-/* 상단 조작 영역 */
-.actions {
+.boot {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--ui-dim);
+  font-size: 13px;
+}
+
+/* 인쇄에서 빼고 싶은 것을 표시하는 용도. `.chrome` 밖에 두는 UI 는 이걸 붙이세요. */
+.no-print {
+  /* 화면에서는 아무 일도 하지 않습니다. @media print 에서만 숨깁니다. */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   [1] 크롬 공통 — 버튼 / 입력 / 칩
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--ui-h);
+  padding: 0 12px;
+  border: 1px solid var(--ui-border-2);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+.btn:hover {
+  background: var(--ui-hover);
+  border-color: var(--ui-border-3);
+}
+.btn--primary {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: #fff;
+}
+.btn--primary:hover {
+  background: var(--ui-accent-hover);
+  border-color: var(--ui-accent-hover);
+}
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ui-dim);
+}
+.btn--ghost:hover {
+  background: var(--ui-hover);
+  color: var(--ui-text);
+}
+.btn--danger {
+  color: var(--ui-danger);
+  border-color: var(--ui-danger-border);
+}
+.btn--danger:hover {
+  background: var(--ui-danger-weak);
+  border-color: var(--ui-danger);
+}
+.btn input[type='file'] {
+  display: none;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-dim);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.icon-btn:hover {
+  background: var(--ui-hover);
+  color: var(--ui-text);
+}
+.icon-btn--danger:hover {
+  background: var(--ui-danger-weak);
+  color: var(--ui-danger);
+}
+
+.icon {
+  flex: none;
+  display: block;
+}
+
+.btn:focus-visible,
+.icon-btn:focus-visible,
+.row-add:focus-visible,
+.rec-more:focus-visible,
+.rec-main:focus-visible,
+.rec-close:focus-visible,
+.rec-item-main:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+.inp {
+  width: 100%;
+  min-width: 0;
+  height: var(--ui-h);
+  padding: 0 10px;
+  border: 1px solid var(--ui-border-2);
+  border-radius: 8px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-size: 13px;
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.inp:hover {
+  border-color: var(--ui-border-3);
+}
+.inp:focus {
+  outline: none;
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 3px var(--ui-ring);
+}
+.inp::placeholder {
+  color: var(--ui-placeholder);
+}
+.inp--num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.inp.is-warn {
+  border-color: var(--ui-warn-border);
+  background: var(--ui-warn-weak);
+}
+textarea.inp {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.55;
+  resize: vertical;
+}
+select.inp {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236a7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  background-size: 15px 15px;
+}
+
+/* 단위(%)를 붙인 입력칸 */
+.inp-adorn {
+  position: relative;
+  min-width: 0;
+}
+.inp-adorn .inp {
+  padding-right: 24px;
+}
+.inp-adorn-suffix {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--ui-dim);
+  pointer-events: none;
+}
+
+input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--ui-accent);
+  cursor: pointer;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.chip--plain {
+  background: var(--ui-chip);
+  color: var(--ui-dim);
+}
+.chip--warn {
+  background: var(--ui-warn-weak);
+  color: var(--ui-warn-text);
+}
+
+/* --------------------------------------------------------------------------
+   [1] 앱 헤더
+   -------------------------------------------------------------------------- */
+.app-head {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px 16px;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 8px 0 16px;
+  margin-bottom: 14px;
+}
+.app-head h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.app-head p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ui-dim);
 }
 
-/* 탭 바 */
-.tabbar {
+/* --------------------------------------------------------------------------
+   [1] 기록 바 (예전 탭 바)
+   -------------------------------------------------------------------------- */
+.recordbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.recordbar-strip {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.recordbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rec {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 240px;
+  height: 36px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
   overflow: hidden;
-  padding-bottom: 6px;
-  margin-bottom: 8px;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
 }
-.tabs-scroll {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
+.rec:hover {
+  border-color: var(--ui-border-3);
+}
+.rec-main {
+  display: flex;
+  /* center 여야 합니다. baseline 은 한 줄 flex 에서 줄 자체를 위쪽에 붙여서
+     날짜·제목이 칩 상단에 몰립니다. */
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 4px 0 11px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.rec-date {
+  flex: none;
+  font-weight: 700;
+  color: var(--ui-dim);
+  font-variant-numeric: tabular-nums;
+}
+.rec-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  scroll-behavior: smooth;
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    black 16px,
-    black calc(100% - 16px),
-    transparent 100%
-  );
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  font-weight: 600;
 }
-.tabs-scroll::-webkit-scrollbar {
+.rec-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+}
+.rec:hover .rec-close,
+.rec.is-active .rec-close,
+.rec-close:focus-visible {
+  opacity: 0.7;
+}
+.rec-close:hover {
+  opacity: 1;
+}
+.rec.is-active {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+}
+.rec.is-active .rec-main,
+.rec.is-active .rec-close {
+  color: #fff;
+}
+.rec.is-active .rec-date {
+  color: rgba(255, 255, 255, 0.72);
+}
+/* 띠에 못 들어간 기록 수. 기록 칩과 같은 줄, 같은 높이에 두어 "목록이 여기서 끝난 게
+   아니라 이어진다" 로 읽히게 합니다. 실제 기록으로 오해되지 않도록 점선 + 무채색입니다. */
+.rec-more {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  height: 36px;
+  min-width: 40px;
+  padding: 0 10px;
+  border: 1px dashed var(--ui-border-2);
+  border-radius: var(--ui-radius);
+  background: transparent;
+  color: var(--ui-dim);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.rec-more:hover {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-weak);
+  color: var(--ui-accent);
+}
+
+/* 마우스가 없는 기기에서는 닫기 버튼을 계속 보여 줍니다. */
+@media (hover: none) {
+  .rec-close {
+    opacity: 0.7;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   [1] 기록 찾기 모달
+   -------------------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: start center;
+  padding: clamp(16px, 9vh, 96px) 16px 16px;
+  background: rgba(17, 24, 39, 0.42);
+}
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: min(640px, calc(100vh - 32px));
+  overflow: hidden;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  box-shadow: var(--ui-shadow-lg);
+}
+.modal-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 13px;
+  border-bottom: 1px solid var(--ui-border);
+  color: var(--ui-dim);
+}
+.modal-search .inp {
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.modal-search .inp:focus {
+  box-shadow: none;
+}
+.modal-list {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+}
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--ui-border);
+  background: var(--ui-surface-2);
+}
+.modal-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ui-dim);
+}
+.modal-empty {
+  margin: 0;
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ui-dim);
+}
+
+.rec-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+  border-radius: var(--ui-radius);
+}
+.rec-item.is-cursor {
+  background: var(--ui-hover);
+}
+.rec-item.is-active {
+  background: var(--ui-accent-weak);
+  box-shadow: inset 0 0 0 1px var(--ui-accent);
+}
+.rec-item-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.rec-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+.rec-item-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   [1] 입력 패널
+   -------------------------------------------------------------------------- */
+.panel {
+  margin-bottom: 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-sm);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--ui-surface-2);
+  border-bottom: 1px solid var(--ui-border);
+}
+.panel-toggle {
+  margin-left: auto;
+}
+.panel-toggle .icon {
+  transition: transform 0.15s ease;
+}
+.panel-toggle[aria-expanded='false'] .icon {
+  transform: rotate(-90deg);
+}
+.panel-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+.panel-row {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.field > span {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ui-dim);
+}
+.field--date {
+  flex: none;
+  width: 168px;
+}
+.field--title {
+  flex: 1 1 260px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-surface);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px 8px;
+}
+.card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+.card-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px 12px;
+}
+.card-hint {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--ui-border);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ui-dim);
+}
+.card--memo .card-body {
+  display: grid;
+}
+.card--memo textarea {
+  height: 100%;
+  min-height: 152px;
+}
+
+/* --------------------------------------------------------------------------
+   [1] 행 리스트
+   -------------------------------------------------------------------------- */
+.rows-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rows {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  border-radius: 8px;
+}
+.row--head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ui-dim);
+}
+.row--head > span {
+  padding: 0 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 두 번째 머리글은 두 열로 나뉠 때만 씁니다. 안 감추면 머리글이 세로로 하나 더 쌓입니다.
+   `.row { display: grid }` 뒤에 와야 합니다 — 특이성이 같아서 소스 순서로 결정됩니다. */
+.row--head-dup {
   display: none;
 }
-.tabs {
+.row.is-drag-over {
+  outline: 2px dashed var(--ui-accent);
+  outline-offset: 2px;
+}
+/* 분배에서 빠진 공대원 행. 글자색은 그대로 둡니다 — 흐리게 하면 빈 칸처럼 보입니다. */
+.row.is-muted .inp {
+  background: var(--ui-chip);
+}
+
+/* 열 폭. 머리글(.row--head)과 행이 같은 클래스를 쓰므로 자동으로 맞습니다. */
+.row--income {
+  grid-template-columns: 18px minmax(0, 1fr) 142px 92px 30px;
+}
+.row--incentive {
+  grid-template-columns: 18px minmax(0, 1fr) 118px minmax(88px, 0.75fr) 30px;
+}
+.row--penalty {
+  grid-template-columns: 18px minmax(0, 1fr) 104px minmax(84px, 0.7fr) minmax(96px, 0.85fr) 30px;
+}
+/* 이름 · 메모 · 분배 제외 · 삭제 순서. 체크박스를 삭제 버튼 옆으로 붙여 두면
+   이름과 메모가 나란히 놓여 읽기 쉽습니다. */
+.row--member {
+  grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) 84px 30px;
+}
+
+/* 숫자 칸 머리글은 오른쪽, 체크박스 칸은 가운데로 붙입니다. */
+.row--head.row--income > span:nth-child(3),
+.row--head.row--income > span:nth-child(4),
+.row--head.row--incentive > span:nth-child(3),
+.row--head.row--penalty > span:nth-child(3) {
+  text-align: right;
+  padding-right: 10px;
+}
+/* 수수료율 칸은 오른쪽에 % 가 붙어 있어 머리글을 그만큼 더 밀어 줍니다. */
+.row--head.row--income > span:nth-child(4) {
+  padding-right: 24px;
+}
+.row--head.row--member > span:nth-child(4) {
+  text-align: center;
+}
+
+.row-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--ui-h);
+  cursor: pointer;
+}
+.row-check-text {
+  display: none;
+  font-size: 12px;
+  color: var(--ui-dim);
+}
+
+.rows-empty {
+  margin: 0;
+  padding: 4px 2px 2px;
+  font-size: 12.5px;
+  color: var(--ui-dim);
+}
+.row-add {
+  /* 부모가 grid 일 때(justify-self)와 flex 열일 때(align-self) 둘 다 필요합니다.
+     하나만 적어 두면 부모가 바뀌는 순간 조용히 전체 폭으로 늘어납니다. */
+  align-self: flex-start;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-.tab {
-  border: 1px solid var(--line);
-  background: #fff;
-  padding: 6px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-  max-width: 220px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-.tab.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.drag-over {
-  outline: 2px dashed #9ca3af;
-}
-
-.btn {
-  border: 1px solid var(--line);
-  background: #fff;
-  padding: 8px 12px;
+  height: 30px;
+  margin-top: 6px;
+  padding: 0 10px;
+  border: 1px dashed var(--ui-border-2);
   border-radius: 8px;
+  background: transparent;
+  color: var(--ui-dim);
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
 }
-.btn.primary {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.btn.danger {
-  background: #fff;
-  color: var(--danger);
-  border-color: #ef4444;
-}
-.btn:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+.row-add:hover {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-weak);
+  color: var(--ui-accent);
 }
 
-/* 입력 패널 */
-details.input-panel {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+.drag-handle {
+  width: 14px;
+  height: 26px;
+  justify-self: center;
+  align-self: center;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 30% 28%, #9ca3af 1.4px, transparent 1.4px),
+    radial-gradient(circle at 70% 28%, #9ca3af 1.4px, transparent 1.4px),
+    radial-gradient(circle at 30% 50%, #9ca3af 1.4px, transparent 1.4px),
+    radial-gradient(circle at 70% 50%, #9ca3af 1.4px, transparent 1.4px),
+    radial-gradient(circle at 30% 72%, #9ca3af 1.4px, transparent 1.4px),
+    radial-gradient(circle at 70% 72%, #9ca3af 1.4px, transparent 1.4px);
+  opacity: 0.4;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: opacity 0.12s ease;
+}
+.row:hover .drag-handle {
+  opacity: 1;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* --------------------------------------------------------------------------
+   [1] 툴바 / 토스트
+   -------------------------------------------------------------------------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
-details.input-panel > summary {
-  padding: 14px 16px;
-  cursor: pointer;
-  font-weight: 700;
-  background: #fafafa;
-  border-bottom: 1px solid var(--line);
-  user-select: none;
-}
-.panel-body {
-  padding: 16px;
-  display: grid;
-  gap: 16px;
-}
-.section {
-  border: 1px dashed #e5e7eb;
-  border-radius: 8px;
-  padding: 12px;
-}
-.section h3 {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: #374151;
-}
-.grid-2 {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-}
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.col-span-2 {
-  grid-column: span 2;
-}
-label.field {
-  display: grid;
+.toolbar-group {
+  display: flex;
+  align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
-label.field span {
-  color: #374151;
-  font-weight: 600;
+.toolbar-group--end {
+  margin-left: auto;
 }
-input[type='text'],
-input[type='number'],
-input[type='date'],
-textarea {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  background: #fff;
-}
-select {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  background-color: #fff;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 16px 16px;
-  padding-right: 32px;
-}
-select::-ms-expand {
-  display: none;
-}
-#input-memo {
-  width: 100%;
-}
-input[type='number'] {
-  text-align: right;
-}
-.small {
-  font-size: 12px;
-  color: var(--muted);
+.toolbar-note {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ui-dim);
 }
 
-/* 테이블 & 레이아웃 */
+.toast-layer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.toast {
+  max-width: min(540px, 100%);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #1f2430;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--ui-shadow-lg);
+  animation: toast-in 0.18s ease-out;
+}
+.toast--error {
+  background: #ad2f22;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   [1] 좁은 화면
+   -------------------------------------------------------------------------- */
+/* 공대원 목록은 넓은 화면에서 두 열로 나눕니다. 이름·메모만 있는 행이라 한 열로 두면
+   양쪽이 200px 씩 늘어나고 세로로만 길어집니다.
+   1100px 부터인 이유: 그보다 좁으면 한 열이 500px 아래로 내려가 이름·메모 칸이 답답해집니다.
+   행 배치는 그리드 기본 흐름(행 우선)이라 읽는 순서 = 실제 순서입니다. */
+@media (min-width: 1100px) {
+  .rows--split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 16px;
+  }
+  .rows--split .row--head-dup {
+    display: grid;
+  }
+}
+
+/* 카드를 둘씩 짝지어 폭을 채웁니다. 한 카드가 패널 폭을 혼자 쓰면 금액·수수료율처럼
+   폭이 고정된 칸은 그대로인데 라벨 칸만 커져서 오른쪽이 비어 보입니다.
+   MEMO 는 패널티와 함께 둡니다 — 출력 MEMO 에 패널티 목록이 붙기도 하고, 공대원
+   목록(가장 긴 리스트) 옆에 두면 빈 텍스트 상자만 길게 늘어납니다. */
+@media (min-width: 981px) {
+  .panel-row--income {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .panel-row--penalty {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+}
+
+/* 행을 카드처럼 두 줄로 접습니다. 머리글은 감추고 placeholder 로 알아보게 합니다. */
+@media (max-width: 700px) {
+  .row--head {
+    display: none;
+  }
+  .rows {
+    gap: 6px;
+  }
+  .row--income,
+  .row--incentive,
+  .row--penalty,
+  .row--member {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
+    padding: 8px;
+    border: 1px solid var(--ui-border);
+    border-radius: 10px;
+    background: var(--ui-surface-2);
+  }
+  .row .drag-handle {
+    display: none;
+  }
+  /* 라벨/이름이 첫 줄을 다 쓰고 삭제 버튼이 그 오른쪽에 섭니다. 나머지 칸은 둘째 줄로
+     흘러갑니다. 두 칸을 명시하지 않으면 자동 배치가 다음 칸을 30px 열에 밀어넣습니다. */
+  .row .inp--label {
+    grid-area: 1 / 1 / 2 / 3;
+  }
+  .row > .icon-btn {
+    grid-area: 1 / 3 / 2 / 4;
+  }
+  .row--penalty select.inp:last-of-type {
+    grid-column: 1 / -1;
+  }
+  .row-check {
+    justify-content: flex-start;
+  }
+  .row-check-text {
+    display: inline;
+  }
+  .app-head {
+    display: grid;
+  }
+}
+
+/* ==========================================================================
+   [2] 출력 시트 — #printArea 안쪽. PNG·인쇄 결과물입니다. 값을 바꾸지 마세요.
+   ========================================================================== */
+
+/* 화면에서만 시트를 종이처럼 받쳐 줍니다. 인쇄·PNG 에는 영향이 없습니다. */
+.sheet-card {
+  padding: 18px 20px 22px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: #fff;
+  box-shadow: var(--ui-shadow-sm);
+  overflow-x: auto;
+}
+
 #printArea {
   background: #fff;
 }
@@ -366,203 +1120,33 @@ tr.total-row td.mismatch {
   font-weight: 800;
 }
 
-/* 리스트 행 */
-#income-list {
-  overflow-x: visible;
-}
-.income-row {
-  display: grid;
-  grid-template-columns: 16px 1fr 130px 120px 48px;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-@media (max-width: 920px) {
-  .income-row {
-    grid-template-columns: 1fr 1fr;
-    min-width: 0;
-  }
-}
-.incentive-row {
-  display: grid;
-  grid-template-columns: 16px 1fr 140px 1fr 48px;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.member-row {
-  display: grid;
-  grid-template-columns: 16px minmax(150px, 1fr) 110px 1fr 48px;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-#penalty-list {
-  overflow-x: visible;
-}
-.penalty-row {
-  display: grid;
-  grid-template-columns: 16px minmax(100px, 0fr) 100px 80px minmax(100px, 1fr) 48px;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.penalty-row select {
-  min-width: 0;
-  max-width: 100%;
-}
-.income-row input,
-.income-row select,
-.penalty-row input,
-.penalty-row select {
-  min-width: 0;
-}
-
-.memo-input-section {
-  display: grid;
-  grid-template-rows: auto 1fr;
-}
-.memo-input-section textarea {
-  height: 100%;
-  min-height: 0;
-}
-
-.income-row .btn,
-.incentive-row .btn,
-.penalty-row .btn,
-.member-row .btn {
-  width: 40px;
-  padding: 6px 0;
-  text-align: center;
-}
-
-#btn-remove-tab {
-  width: 40px;
-  padding-left: 0;
-  padding-right: 0;
-  text-align: center;
-}
-
-/* 탭 더보기 모달 */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 24, 39, 0.55);
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  z-index: 50;
-}
-.modal {
-  width: min(720px, 100%);
-  max-height: min(720px, calc(100vh - 32px));
-  overflow: hidden;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-}
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--line);
-  background: #fafafa;
-}
-.modal-title {
-  font-weight: 800;
-}
-.modal-sub {
-  font-weight: 600;
-  color: var(--muted);
-  margin-left: 8px;
-}
-.modal-body {
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-.modal-list {
-  display: grid;
-  gap: 8px;
-  overflow: auto;
-  padding-right: 2px;
-  max-height: calc(100vh - 220px);
-}
-.modal-item {
-  text-align: left;
-  border: 1px solid var(--line);
-  background: #fff;
-  padding: 10px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-.modal-item.active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}
-.modal-item-title {
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.modal-item-meta {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 12px;
-  display: grid;
-  gap: 2px;
-}
-.modal-empty {
-  color: var(--muted);
-  font-size: 13px;
-  padding: 12px 4px;
-}
-
-/* 드래그 핸들 */
-.drag-handle {
-  display: inline-block;
-  width: 12px;
-  height: 24px;
-  border-radius: 4px;
-  background:
-    radial-gradient(circle at 30% 25%, #9ca3af 1.5px, transparent 1.5px),
-    radial-gradient(circle at 70% 25%, #9ca3af 1.5px, transparent 1.5px),
-    radial-gradient(circle at 30% 50%, #9ca3af 1.5px, transparent 1.5px),
-    radial-gradient(circle at 70% 50%, #9ca3af 1.5px, transparent 1.5px),
-    radial-gradient(circle at 30% 75%, #9ca3af 1.5px, transparent 1.5px),
-    radial-gradient(circle at 70% 75%, #9ca3af 1.5px, transparent 1.5px);
-  background-color: transparent;
-  cursor: grab;
-  align-self: center;
-  justify-self: center;
-  user-select: none;
-  touch-action: none;
-}
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-/* 드래그 이미지(행 전체 미리보기) */
-.drag-ghost {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-/* 인쇄 스타일 */
+/* ==========================================================================
+   인쇄
+   조작 UI 는 전부 `.chrome` 안에 있습니다. 새로 만든 UI 를 그 밖에 둘 거라면
+   `.no-print` 를 붙이세요. 안 붙이면 인쇄물에 그대로 찍힙니다.
+   ========================================================================== */
 @media print {
+  .chrome,
+  .toast-layer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .container {
     max-width: none;
     margin: 0;
     padding: 0;
   }
-  .actions,
-  details.input-panel {
-    display: none !important;
-  }
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  .sheet-card {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
   }
   @page {
     size: A4 landscape;
@@ -575,4 +1159,3 @@ tr.total-row td.mismatch {
     page-break-inside: avoid;
   }
 }
-

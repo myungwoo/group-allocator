@@ -1,67 +1,79 @@
 'use client';
 
 import type { Member, PenaltyItem, PenaltyMode } from '@/lib/types';
-import { fmt, parseMoneyInput } from '@/lib/utils';
-import { DragHandle, useRowDnd } from '@/components/rows/dnd';
+import { PENALTY_MODE_LABEL } from '@/lib/penalty';
+import { Icon } from '@/components/ui/Icon';
+import { MoneyInput } from '@/components/ui/NumberInputs';
+import { DragHandle, useRowAutoFocus, useRowDnd } from '@/components/rows/dnd';
 
 export function PenaltyRow({
   item,
   members,
   index,
+  focused,
   onChange,
   onDelete,
-  onMove
+  onMove,
+  onEnter
 }: {
   item: PenaltyItem;
   members: Member[];
   index: number;
+  focused: boolean;
   onChange: (next: PenaltyItem) => void;
   onDelete: () => void;
   onMove: (from: number, to: number) => void;
+  onEnter?: () => void;
 }) {
-  const { over, rowProps } = useRowDnd(index, onMove);
+  const { over, rowProps } = useRowDnd(index, onMove, onDelete);
+  const firstRef = useRowAutoFocus(focused);
+  const unassigned = !item.payerId;
+
   return (
-    <div className={`penalty-row${over ? ' drag-over' : ''}`} draggable={false} {...rowProps}>
+    <div className={`row row--penalty${over ? ' is-drag-over' : ''}`} {...rowProps}>
       <DragHandle index={index} />
       <input
+        ref={firstRef}
+        className="inp inp--label"
         type="text"
         value={item.label ?? ''}
+        placeholder="라벨"
         aria-label="패널티 라벨"
-        style={{ flex: '1 1 100px', minWidth: 100 }}
         onChange={(e) => onChange({ ...item, label: e.target.value })}
       />
-      <input
-        type="text"
-        value={fmt(Math.max(0, Math.floor(item.amount || 0)))}
-        aria-label="패널티 금액"
-        onChange={(e) => onChange({ ...item, amount: Math.max(0, parseMoneyInput(e.target.value)) })}
+      <MoneyInput
+        value={item.amount}
+        placeholder="금액"
+        ariaLabel="패널티 금액"
+        onChange={(amount) => onChange({ ...item, amount })}
+        onEnter={onEnter}
       />
       <select
+        className={`inp${unassigned ? ' is-warn' : ''}`}
         aria-label="패널티 지불자"
-        style={{ width: 100 }}
         value={item.payerId ?? ''}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (!v) onChange({ ...item, payerId: undefined });
-          else onChange({ ...item, payerId: v });
-        }}
+        onChange={(e) => onChange({ ...item, payerId: e.target.value || undefined })}
       >
-        <option value="">선택 안함</option>
+        <option value="">지불자 미지정</option>
         {members.map((m, i) => (
           <option key={m.id} value={m.id}>
             {m.name || `공대원${i + 1}`}
           </option>
         ))}
       </select>
-      <select aria-label="분배 방식" value={item.mode} onChange={(e) => onChange({ ...item, mode: e.target.value as PenaltyMode })}>
-        <option value="exclude-penalized">부과 인원 제외</option>
-        <option value="exclude-self">본인 제외</option>
-        <option value="include-self">본인 포함</option>
+      <select
+        className="inp"
+        aria-label="패널티 분배 방식"
+        value={item.mode}
+        onChange={(e) => onChange({ ...item, mode: e.target.value as PenaltyMode })}
+      >
+        <option value="exclude-penalized">{PENALTY_MODE_LABEL['exclude-penalized']}</option>
+        <option value="exclude-self">{PENALTY_MODE_LABEL['exclude-self']}</option>
+        <option value="include-self">{PENALTY_MODE_LABEL['include-self']}</option>
       </select>
-      <button className="btn" aria-label="패널티 삭제" onClick={onDelete} type="button">
-        🗑️
+      <button className="icon-btn icon-btn--danger" aria-label="패널티 삭제" title="삭제" onClick={onDelete} type="button">
+        <Icon name="trash" />
       </button>
     </div>
   );
 }
-
