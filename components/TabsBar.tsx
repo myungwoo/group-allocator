@@ -70,10 +70,13 @@ export function TabsBar({
   const [cursor, setCursor] = useState(0);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const openerRef = useRef<HTMLButtonElement | null>(null);
+  // 모달을 닫을 때 포커스를 돌려 줄 곳. 여는 경로가 여러 개라(+N 칩 / 전체 버튼 / ⌘K)
+  // 특정 버튼을 기억하지 않고 열던 순간의 포커스를 씁니다.
+  const triggerRef = useRef<HTMLElement | null>(null);
   const thisYear = new Date().getFullYear();
 
   const openPicker = useCallback(() => {
+    triggerRef.current = document.activeElement as HTMLElement | null;
     setQuery('');
     setCursor(0);
     setPickerOpen(true);
@@ -81,7 +84,7 @@ export function TabsBar({
 
   const closePicker = useCallback(() => {
     setPickerOpen(false);
-    openerRef.current?.focus();
+    triggerRef.current?.focus();
   }, []);
 
   const strip = useMemo(() => {
@@ -97,6 +100,9 @@ export function TabsBar({
     }
     return picked;
   }, [tabs.activeId, tabs.items]);
+
+  // 띠에 못 들어간 기록 수. 0 이면 지금 보이는 게 전부입니다.
+  const hiddenCount = tabs.items.length - strip.length;
 
   const filtered = useMemo(() => {
     const items = tabs.items.slice().sort(byDateDesc);
@@ -128,16 +134,11 @@ export function TabsBar({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== 'k' || !(e.metaKey || e.ctrlKey)) return;
       e.preventDefault();
-      setPickerOpen((prev) => {
-        if (prev) return prev;
-        setQuery('');
-        setCursor(0);
-        return true;
-      });
+      if (!isPickerOpen) openPicker();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [isPickerOpen, openPicker]);
 
   useEffect(() => {
     if (!isPickerOpen) return;
@@ -211,11 +212,21 @@ export function TabsBar({
             </div>
           );
         })}
+        {hiddenCount > 0 ? (
+          <button
+            className="rec-more"
+            type="button"
+            onClick={openPicker}
+            aria-label={`기록 ${hiddenCount}개 더 보기`}
+            title={`기록 ${hiddenCount}개가 더 있습니다. 전체에서 찾기 (⌘K / Ctrl+K)`}
+          >
+            +{hiddenCount}
+          </button>
+        ) : null}
       </div>
 
       <div className="recordbar-actions">
         <button
-          ref={openerRef}
           className="btn"
           aria-haspopup="dialog"
           aria-expanded={isPickerOpen}
@@ -305,7 +316,10 @@ export function TabsBar({
             </div>
 
             <div className="modal-foot">
-              <span className="modal-hint">↑↓ 이동 · Enter 열기 · Esc 닫기</span>
+              <span className="modal-hint">
+                {query ? `${filtered.length} / ${tabs.items.length}개` : `${tabs.items.length}개`} · ↑↓ 이동 · Enter 열기
+                · Esc 닫기
+              </span>
               <button
                 className="btn"
                 type="button"

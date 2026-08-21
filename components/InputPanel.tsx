@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import type { ComputeResult } from '@/lib/compute';
+import { DEFAULT_INCOME_FEE_RATE } from '@/lib/constants';
 import { sumIncome } from '@/lib/compute';
 import type { AppState, IncentiveItem, IncomeItem, Member, PenaltyItem } from '@/lib/types';
 import { fmt, genId } from '@/lib/utils';
@@ -37,8 +38,10 @@ export function InputPanel({
   const members = useListOps(setState, 'members');
 
   const addIncome = () => {
-    // 수수료율은 보통 항목마다 같으니 마지막 값을 물려받습니다.
-    const feeRate = Number(state.incomeItems[state.incomeItems.length - 1]?.feeRate || 0);
+    // 수수료율은 보통 항목마다 같으니 마지막 값을 물려받고, 첫 항목이면 기본값을 씁니다.
+    // 마지막 항목이 0% 면 0% 를 물려받습니다 — 일부러 0 으로 둔 것을 되돌리지 않습니다.
+    const last = state.incomeItems[state.incomeItems.length - 1];
+    const feeRate = last ? Number(last.feeRate || 0) : DEFAULT_INCOME_FEE_RATE;
     const item: IncomeItem = { id: genId('income'), label: '', gross: 0, feeRate };
     income.append(item);
     setFocusId(item.id);
@@ -119,7 +122,7 @@ export function InputPanel({
                   <Chip>수수료 제외 {fmt(incomeSum.net)}</Chip>
                 </>
               }
-              hint="수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다."
+              hint={`수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다. 새 항목은 ${DEFAULT_INCOME_FEE_RATE}% 로 시작합니다.`}
             >
               <RowList
                 variant="income"
