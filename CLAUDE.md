@@ -79,19 +79,34 @@ ESLint 는 flat config(`eslint.config.mjs`)를 씁니다. 규칙 세트는 다�
 - 테마처럼 유틸들이 **일부러 공유하는** 값은 예외이고, 그때는 `ml:theme`
   (`'light' | 'dark' | 'system'`)을 씁니다. 이 앱에는 아직 없습니다.
 
-### 4. 저장은 클라이언트에서만 합니다
+### 4. PNG 은 화면 폭과 무관해야 합니다
+
+`components/utils/png.ts` 는 화면에 보이는 시트를 그대로 찍지 않습니다. 화면 밖에
+**고정 폭(`CAPTURE_WIDTH` = 1128px, 넓은 데스크톱 기준) 복제본**을 만들고 그것만 찍습니다.
+그러지 않으면 창 폭·기기에 따라 같은 데이터가 다른 이미지로 나옵니다.
+
+- `windowWidth`/`windowHeight` 를 넘겨서 html2canvas 가 다시 그리는 iframe 안에서
+  **미디어 쿼리가 데스크톱으로 평가**되게 합니다. **시트에 미디어 쿼리를 새로 넣으면
+  `.sheet-capture` 에도 데스크톱 값을 고정해 주세요**(`app/globals.css`).
+- 캡처 전에 `document.fonts.load` 로 Pretendard 를 기다립니다. `font-display: swap` 이라
+  기다리지 않으면 화면은 Pretendard 인데 PNG 만 폴백으로 찍힙니다 — html2canvas 는
+  글자를 캔버스에 직접 그리므로 그 순간의 폰트로 굳습니다.
+- `scale` 은 2 로 고정입니다. `devicePixelRatio` 를 쓰면 기기마다 해상도가 달라집니다.
+- 여백 `PAD` 는 **캔버스 픽셀**입니다(scale 을 이미 곱한 뒤). 예전 결과와 같게 두세요.
+
+### 5. 저장은 클라이언트에서만 합니다
 
 `lib/storage.ts` 는 `localStorage` 를 직접 만지므로 SSR 단계에서 부르면 터집니다.
 `useEffect` 안이나 이벤트 핸들러에서만 호출하세요. `AllocatorApp` 은 `hydrated` 가 될
 때까지 최소 UI 만 그립니다 — SSR/CSR 불일치를 막는 장치이니 지우지 마세요.
 
-### 5. 서버가 없습니다
+### 6. 서버가 없습니다
 
 `output: "export"` 정적 빌드입니다. 라우트 핸들러·서버 액션·미들웨어를 넣으면 빌드가
 깨집니다. `basePath` 는 배포하는 쪽이 `NEXT_PUBLIC_BASE_PATH` 로 주입하고, 없으면
 `GITHUB_PAGES` + `GITHUB_REPOSITORY` 로 `/<repo>` 를 만듭니다(`next.config.ts`).
 
-### 6. 계산은 한 곳에서만 합니다
+### 7. 계산은 한 곳에서만 합니다
 
 `lib/compute.ts` 가 유일한 계산기입니다. 수수료를 빼는 식, 나머지 1원을 앞에서부터
 배분하는 규칙, 패널티 분배 대상을 고르는 규칙이 전부 여기 있습니다.
@@ -102,7 +117,7 @@ ESLint 는 flat config(`eslint.config.mjs`)를 씁니다. 규칙 세트는 다�
 출력 시트 요약표도 자기 복사본을 갖고 있다가 음수 수입에서 어긋나서 `incomeItemAmounts` 로
 합쳤습니다.
 
-### 7. 음수 수입 = 공대 공동 비용입니다
+### 8. 음수 수입 = 공대 공동 비용입니다
 
 알버프 값처럼 **보전받을 사람이 없는** 공동 비용은 수입 항목에 음수로 넣습니다. 분배 대상만
 줄고 아무에게도 가산되지 않습니다. 누가 선지출해서 **보전해 줄 사람이 있으면** 그건 비용이
@@ -136,7 +151,7 @@ components/
   hooks/
     useAllocatorState  기록 목록 + 현재 기록, localStorage 저장
     useListOps         AppState 안의 리스트 하나에 대한 update/remove/move/append
-  utils/               memo(출력용 MEMO 조립), png(html2canvas + 흰 여백)
+  utils/               memo(출력용 MEMO 조립), png(고정 폭 복제본 캡처 + 흰 여백)
 lib/
   compute.ts           계산기. 여기 말고 어디에도 계산을 두지 않습니다
   clipboard.ts         디스코드용 분배 텍스트(비슷한 금액 묶기)
