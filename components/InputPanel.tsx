@@ -68,6 +68,7 @@ export function InputPanel({
   };
 
   const incomeSum = sumIncome(state.incomeItems);
+  const costTotal = state.incomeItems.reduce((sum, it) => sum + Math.min(0, Math.floor(Number(it.gross) || 0)), 0);
   const incentiveSum = sumAmounts(state.incentives);
   const incentiveUnassigned = state.incentives.filter((it) => !it.recipientId).length;
   const penaltySum = sumAmounts(state.penaltyItems);
@@ -119,10 +120,11 @@ export function InputPanel({
               chips={
                 <>
                   <Chip>{state.incomeItems.length}건</Chip>
+                  {costTotal < 0 ? <Chip>비용 {fmt(costTotal)}</Chip> : null}
                   <Chip>수수료 제외 {fmt(incomeSum.net)}</Chip>
                 </>
               }
-              hint={`수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다. 새 항목은 ${DEFAULT_INCOME_FEE_RATE}% 로 시작합니다.`}
+              hint={`수수료율을 넣으면 수수료를 뺀 금액이 분배 대상이 됩니다. 항목별로 내림합니다. 새 항목은 ${DEFAULT_INCOME_FEE_RATE}% 로 시작합니다. 알버프 값처럼 공대가 함께 부담한 비용은 금액에 -(빼기)를 붙여 넣으세요 — 분배 대상에서 빠집니다.`}
             >
               <RowList
                 variant="income"

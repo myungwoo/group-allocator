@@ -24,6 +24,8 @@ export function IncomeRow({
 }) {
   const { over, rowProps } = useRowDnd(index, onMove, onDelete);
   const firstRef = useRowAutoFocus(focused);
+  // 음수 = 공대 분담 비용. 수수료율은 뜻이 없어서 잠급니다(값은 지우지 않습니다).
+  const isCost = Number(item.gross || 0) < 0;
 
   return (
     <div className={`row row--income${over ? ' is-drag-over' : ''}`} {...rowProps}>
@@ -41,12 +43,15 @@ export function IncomeRow({
         value={item.gross}
         placeholder="전체금액"
         ariaLabel="전체금액"
+        allowNegative
         onChange={(gross) => onChange({ ...item, gross })}
         onEnter={onEnter}
       />
       <PercentInput
         value={Number(item.feeRate || 0)}
         ariaLabel="수수료율(%)"
+        disabled={isCost}
+        title={isCost ? '비용(음수) 항목에는 수수료가 붙지 않습니다.' : undefined}
         onChange={(feeRate) => onChange({ ...item, feeRate })}
         onEnter={onEnter}
       />

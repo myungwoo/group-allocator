@@ -3,19 +3,35 @@ import { PENALTY_MODE_LABEL } from '@/lib/penalty';
 import { clampInt, formatDate } from '@/lib/utils';
 
 /**
- * 수입 항목 합산 (전체금액 / 수수료 제외 금액).
+ * 수입 항목 하나의 전체금액 / 수수료 제외 금액.
  *
- * 수수료는 항목별로 내림합니다. 이 계산이 계산기·입력 패널·기록 목록 세 곳에서
- * 필요해서 함수로 빼 두었습니다. 복사해 쓰면 반드시 어긋납니다.
+ * 수수료는 항목별로 내림합니다. 이 계산이 계산기·입력 패널·출력 시트 요약표에서
+ * 모두 필요해서 함수로 빼 두었습니다. 복사해 쓰면 반드시 어긋납니다.
+ *
+ * **음수(공대 공동 비용) 행은 수수료율을 무시합니다.** 음수에 수수료를 물리면
+ * 수수료가 비용을 깎아 주는 방향이 되어(-500만의 3% = -15만 → 비용 485만) 뜻이
+ * 반대가 됩니다. 저장된 feeRate 는 그대로 두고 계산에서만 빼므로, 부호를 되돌리면
+ * 원래 수수료율이 살아납니다.
+ *
+ * `Math.max(0, ...)` 는 수수료율 100% 초과가 수입을 음수로 뒤집는 것을 막는
+ * 안전장치입니다. 그래서 양수 행에만 걸어야 합니다 — 음수 행에 걸면 비용이 0 이
+ * 되어 조용히 사라집니다.
  */
+export function incomeItemAmounts(item: IncomeItem | undefined | null): { gross: number; net: number } {
+  const gross = clampInt(item?.gross);
+  if (gross < 0) return { gross, net: gross };
+  const feeByRate = Math.floor(gross * (Number(item?.feeRate || 0) / 100));
+  return { gross, net: Math.max(0, gross - feeByRate) };
+}
+
+/** 수입 항목 합산 (전체금액 / 수수료 제외 금액). */
 export function sumIncome(items: IncomeItem[] | undefined | null): { gross: number; net: number } {
   let gross = 0;
   let net = 0;
   for (const item of Array.isArray(items) ? items : []) {
-    const g = clampInt(item.gross);
-    const feeByRate = Math.floor(g * (Number(item.feeRate || 0) / 100));
-    gross += g;
-    net += Math.max(0, g - feeByRate);
+    const amounts = incomeItemAmounts(item);
+    gross += amounts.gross;
+    net += amounts.net;
   }
   return { gross, net };
 }
@@ -80,8 +96,11 @@ export function compute(state: AppState): ComputeResult {
     return { error: '공대원 수가 0명입니다. 최소 1명 이상 입력하세요.' };
   }
 
-  // 수입(수수료 포함) 합산
+  // 수입(수수료 포함) 합산. 음수 항목은 공대 공동 비용입니다.
   const { gross, net: netIncome } = sumIncome(state?.incomeItems);
+  if (netIncome < 0) {
+    return { error: '비용(음수 수입)이 수입보다 큽니다. 수입 항목을 확인하세요.' };
+  }
 
   // 인센티브
   const incentivesRaw = Array.isArray(state?.incentives) ? state.incentives : [];

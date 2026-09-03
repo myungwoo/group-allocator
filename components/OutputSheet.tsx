@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 
 import type { AppState } from '@/lib/types';
 import type { ComputeResult } from '@/lib/compute';
-import { headerTitle } from '@/lib/compute';
+import { headerTitle, incomeItemAmounts } from '@/lib/compute';
 import { fmt, fmtOrBlank } from '@/lib/utils';
 
 export const OutputSheet = forwardRef<HTMLDivElement, { state: AppState; result: ComputeResult; memoForPrint: string }>(
@@ -131,13 +131,13 @@ export const OutputSheet = forwardRef<HTMLDivElement, { state: AppState; result:
                 {'error' in result ? null : (
                   <>
                     {state.incomeItems.map((it, i) => {
-                      const g = Math.floor(Number(it.gross || 0));
-                      const fr = Number(it.feeRate || 0);
-                      const feeByRate = Math.floor(g * (fr / 100));
-                      const net = Math.max(0, g - feeByRate);
+                      // 수수료 계산은 compute.ts 것을 그대로 씁니다. 여기 복사해 두면
+                      // 항목 합과 합계 줄이 어긋납니다(음수 비용 행에서 실제로 어긋났습니다).
+                      const { gross: g, net } = incomeItemAmounts(it);
+                      const fallback = g < 0 ? `비용 ${i + 1}` : `수입 ${i + 1}`;
                       return (
                         <tr key={it.id}>
-                          <td>{it.label || `수입 ${i + 1}`}</td>
+                          <td>{it.label || fallback}</td>
                           <td className="num">{fmt(g)}</td>
                           <td className="num">{fmt(net)}</td>
                           <td className="num">0</td>
@@ -152,7 +152,7 @@ export const OutputSheet = forwardRef<HTMLDivElement, { state: AppState; result:
                           <td>{title}</td>
                           <td className="num">0</td>
                           <td className="num">0</td>
-                          <td className="num">-{fmt(Math.max(0, Math.floor(it.amount || 0)))}</td>
+                          <td className="num">{fmt(-Math.max(0, Math.floor(it.amount || 0)))}</td>
                         </tr>
                       );
                     })}
@@ -164,7 +164,7 @@ export const OutputSheet = forwardRef<HTMLDivElement, { state: AppState; result:
                   <th>합계</th>
                   <th className="num">{'error' in result ? '0' : fmt(result.meta.gross)}</th>
                   <th className="num">{'error' in result ? '0' : fmt(result.meta.netIncome)}</th>
-                  <th className="num">{'error' in result ? '0' : `-${fmt(result.meta.incentiveTotal)}`}</th>
+                  <th className="num">{'error' in result ? '0' : fmt(-result.meta.incentiveTotal)}</th>
                 </tr>
               </tfoot>
             </table>

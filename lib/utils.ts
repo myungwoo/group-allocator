@@ -1,7 +1,14 @@
 import type { AppState } from '@/lib/types';
 
+/**
+ * 금액 표시. `-0` 은 `0` 으로 씁니다.
+ *
+ * `(-0).toLocaleString()` 은 "-0" 을 냅니다. 패널티 합계가 `-패널티총액` 이라
+ * 패널티가 없는 분배표의 TOTAL 줄에 "-0" 이 찍혔습니다.
+ */
 export function fmt(n: number): string {
-  return Number.isFinite(n) ? n.toLocaleString('ko-KR') : '0';
+  if (!Number.isFinite(n)) return '0';
+  return (n === 0 ? 0 : n).toLocaleString('ko-KR');
 }
 
 export function fmtOrBlank(n: number): string {
@@ -14,10 +21,25 @@ export function clampInt(v: unknown): number {
   return Number.isFinite(num) ? num : 0;
 }
 
-export function parseMoneyInput(value: string): number {
-  const raw = String(value ?? '').replace(/[^\d]/g, '');
+/**
+ * 금액 입력 문자열 → 정수.
+ *
+ * `allowNegative` 는 수입 항목에만 씁니다. 공대 공동 비용을 음수 수입으로 넣기
+ * 때문입니다.
+ *
+ * 부호는 **문자열 어디에 있든** 하나만 있으면 음수로 봅니다. 맨 앞만 보면
+ * "-5,000,000" 에서 Home 을 누르고 숫자를 치는 순간(캐럿이 `-` 앞에 섭니다)
+ * "1-5,000,000" 이 되어 부호가 조용히 날아갑니다 — 실제로 그렇게 +15,000,000 이
+ * 되는 것을 확인했습니다. 금액 칸에 `-` 가 들어오는 경로는 사용자가 직접 치는
+ * 것뿐이니, 위치를 따지지 않는 편이 잃어버리지 않아 안전합니다.
+ */
+export function parseMoneyInput(value: string, allowNegative = false): number {
+  const text = String(value ?? '');
+  const negative = allowNegative && text.includes('-');
+  const raw = text.replace(/[^\d]/g, '');
   if (!raw) return 0;
-  return clampInt(raw);
+  const num = clampInt(raw);
+  return negative ? -num : num;
 }
 
 export function formatDate(dateStr: string): string {
