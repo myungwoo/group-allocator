@@ -21,3 +21,14 @@ export const LEGACY_TABS_KEY = 'almok_tabs_v1';
  * 씁니다(`InputPanel` 의 `addIncome`).
  */
 export const DEFAULT_INCOME_FEE_RATE = 5;
+
+
+/**
+ * 택배(우편) 수수료율(%).
+ *
+ * 분배금을 택배로 보내면 받는 사람에게는 이만큼 뺀 금액이 도착합니다. 메이플랜드 2.0
+ * 부터 금액과 무관하게 5% 로 고정이라 상수로 둡니다. 경매장 수수료
+ * (`DEFAULT_INCOME_FEE_RATE`)와 값은 같지만 뜻이 다른 수수료이니 합치지 마세요 —
+ * 경매장 쪽은 항목마다 사용자가 고쳐 쓰는 기본값이고, 이쪽은 게임이 정한 값입니다.
+ */
+export const MAIL_FEE_RATE = 5;
