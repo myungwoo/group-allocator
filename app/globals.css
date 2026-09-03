@@ -1120,6 +1120,28 @@ tr.total-row td.mismatch {
   font-weight: 800;
 }
 
+/* --------------------------------------------------------------------------
+   PNG 캡처용 복제본 — components/utils/png.ts 가 화면 밖에 시트를 복제해 넣습니다.
+   창 폭·기기와 상관없이 같은 픽셀이 나와야 하므로, 화면 폭에 반응하는 규칙을
+   데스크톱 모양으로 되돌립니다. 시트에 미디어 쿼리를 새로 넣으면 여기도 같이
+   고정해 주세요.
+   -------------------------------------------------------------------------- */
+.sheet-capture {
+  font-size: 14px;
+  /* 모바일 브라우저가 글자를 자동으로 키우면 캡처 결과가 달라집니다. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.sheet-capture .sheet {
+  grid-template-columns: 1fr;
+}
+.sheet-capture .footer {
+  grid-template-columns: 1fr 1fr;
+}
+.sheet-capture .kpi {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 /* ==========================================================================
    인쇄
    조작 UI 는 전부 `.chrome` 안에 있습니다. 새로 만든 UI 를 그 밖에 둘 거라면
