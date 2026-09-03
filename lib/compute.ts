@@ -1,5 +1,6 @@
 import type { AppState, IncomeItem, Member, PenaltyMode } from '@/lib/types';
 import { PENALTY_MODE_LABEL } from '@/lib/penalty';
+import { MAIL_FEE_RATE } from '@/lib/constants';
 import { clampInt, formatDate } from '@/lib/utils';
 
 /**
@@ -22,6 +23,25 @@ export function incomeItemAmounts(item: IncomeItem | undefined | null): { gross:
   if (gross < 0) return { gross, net: gross };
   const feeByRate = Math.floor(gross * (Number(item?.feeRate || 0) / 100));
   return { gross, net: Math.max(0, gross - feeByRate) };
+}
+
+/**
+ * 택배로 보냈을 때 받는 사람에게 도착하는 금액.
+ *
+ * 분배금을 직접 만나서 거래하지 않고 택배로 보내면 `MAIL_FEE_RATE` 만큼이 떨어져
+ * 나갑니다. 분배 텍스트에 이 금액을 같이 적어 주면, 받는 사람이 "적게 왔다" 고
+ * 묻지 않습니다.
+ *
+ * 수수료를 내림하고 원금에서 빼는 순서는 `incomeItemAmounts` 와 같게 맞췄습니다.
+ * `amount * 0.95` 로 한 번에 곱하지 않는 이유는 0.95 가 2진수로 딱 떨어지지 않아
+ * 금액에 따라 1원이 흔들리기 때문입니다.
+ *
+ * 0 이하(패널티로 다 깎인 공대원)는 그대로 돌려줍니다 — 보낼 것이 없습니다.
+ */
+export function afterMailFee(amount: number): number {
+  const value = clampInt(amount);
+  if (value <= 0) return value;
+  return value - Math.floor((value * MAIL_FEE_RATE) / 100);
 }
 
 /** 수입 항목 합산 (전체금액 / 수수료 제외 금액). */
