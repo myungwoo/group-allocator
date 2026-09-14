@@ -1,6 +1,6 @@
 import type { AppState, IncomeItem, Member, PenaltyMode } from '@/lib/types';
 import { PENALTY_MODE_LABEL } from '@/lib/penalty';
-import { MAIL_FEE_RATE } from '@/lib/constants';
+import { MAIL_BASE_FEE, MAIL_FEE_RATE } from '@/lib/constants';
 import { clampInt, formatDate } from '@/lib/utils';
 
 /**
@@ -26,22 +26,42 @@ export function incomeItemAmounts(item: IncomeItem | undefined | null): { gross:
 }
 
 /**
- * 택배로 보냈을 때 받는 사람에게 도착하는 금액.
+ * 택배 한 건에 보내는 쪽이 실제로 내는 돈. 보낼 금액 + 송금 수수료 + 택배 고정 수수료.
  *
- * 분배금을 직접 만나서 거래하지 않고 택배로 보내면 `MAIL_FEE_RATE` 만큼이 떨어져
- * 나갑니다. 분배 텍스트에 이 금액을 같이 적어 주면, 받는 사람이 "적게 왔다" 고
- * 묻지 않습니다.
- *
- * 수수료를 내림하고 원금에서 빼는 순서는 `incomeItemAmounts` 와 같게 맞췄습니다.
- * `amount * 0.95` 로 한 번에 곱하지 않는 이유는 0.95 가 2진수로 딱 떨어지지 않아
- * 금액에 따라 1원이 흔들리기 때문입니다.
- *
- * 0 이하(패널티로 다 깎인 공대원)는 그대로 돌려줍니다 — 보낼 것이 없습니다.
+ * 수수료를 내림하는 순서는 `incomeItemAmounts` 와 같게 맞췄습니다. `amount * 1.05` 로
+ * 한 번에 곱하지 않는 이유는 1.05 가 2진수로 딱 떨어지지 않아 금액에 따라 1원이
+ * 흔들리기 때문입니다.
  */
-export function afterMailFee(amount: number): number {
-  const value = clampInt(amount);
-  if (value <= 0) return value;
-  return value - Math.floor((value * MAIL_FEE_RATE) / 100);
+export function mailTotalCost(sendAmount: number): number {
+  const value = clampInt(sendAmount);
+  if (value <= 0) return 0;
+  return value + Math.floor((value * MAIL_FEE_RATE) / 100) + MAIL_BASE_FEE;
+}
+
+/**
+ * 분배금을 택배로 줄 때 **우편에 실어 보낼 금액**.
+ *
+ * 택배는 보내는 쪽이 수수료를 냅니다 — 보낼 금액의 `MAIL_FEE_RATE`% 인 송금 수수료와,
+ * 금액과 무관한 고정 수수료 `MAIL_BASE_FEE` 입니다. 분배금은 그 수수료까지 포함한
+ * 금액이어야 하므로(`보낼 금액 + 수수료 = 분배금`), 여기서 역으로 보낼 금액을 구합니다.
+ *
+ * 수수료가 내림이라 나눗셈만으로는 1원이 어긋납니다. `mailTotalCost` 로 되짚어 보면서
+ * **총액이 분배금을 넘지 않는 가장 큰 금액**을 고릅니다 — 넘으면 보내는 사람이 자기
+ * 돈을 보태게 됩니다.
+ *
+ * 분배금이 고정 수수료도 못 채우면(패널티로 다 깎인 공대원 포함) 0 입니다 — 택배로는
+ * 보낼 것이 없습니다.
+ */
+export function mailSendAmount(allocation: number): number {
+  const total = clampInt(allocation);
+  const budget = total - MAIL_BASE_FEE;
+  if (budget <= 0) return 0;
+
+  // 내림 때문에 실제 수수료는 이보다 적을 수 있어, 한 칸씩 올려 보며 맞춥니다.
+  let send = Math.floor((budget * 100) / (100 + MAIL_FEE_RATE));
+  while (send > 0 && mailTotalCost(send) > total) send--;
+  while (mailTotalCost(send + 1) <= total) send++;
+  return send;
 }
 
 /** 수입 항목 합산 (전체금액 / 수수료 제외 금액). */
