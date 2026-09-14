@@ -1,5 +1,5 @@
 import type { AppState } from '@/lib/types';
-import { afterMailFee, compute } from '@/lib/compute';
+import { compute, mailSendAmount } from '@/lib/compute';
 import { fmt } from '@/lib/utils';
 
 /** 한 줄에 넣을 이름 수. 5명을 넘기면 디스코드에서 줄이 접혀 읽기 나빠집니다. */
@@ -53,9 +53,10 @@ function memberLabel(name: string, note: string): string {
  * 2.0 부터 수수료가 금액과 무관하게 5% 로 고정되어 나눠 거래할 이유가 없어졌으므로,
  * 지금은 금액이 비슷한 사람끼리 묶어 보여 주기만 합니다.
  *
- * 금액 옆에는 택배로 보냈을 때 도착하는 금액을 같이 적습니다(`afterMailFee`). 분배는
- * 만나서 거래하거나 택배로 보내는데, 택배는 5% 가 떨어져 나가서 받는 쪽이 본 숫자와
- * 다릅니다. 두 금액을 같이 두면 어느 쪽으로 받든 확인이 됩니다.
+ * 금액 옆에는 택배로 줄 때 우편에 실을 금액을 같이 적습니다(`mailSendAmount`). 분배는
+ * 만나서 거래하거나 택배로 보내는데, 택배는 보내는 쪽이 송금 수수료와 고정 수수료를
+ * 내므로 수수료까지 분배금 안에서 떼야 합니다. 두 금액을 같이 두면 어느 쪽으로 주든
+ * 그대로 보고 칠 수 있습니다.
  */
 export function createDistributionClipboardText(state: AppState): string {
   // 날짜도 제목도 없으면 제목 줄을 아예 뺍니다. `##` 만 남으면 디스코드가 소제목으로
@@ -97,7 +98,7 @@ export function createDistributionClipboardText(state: AppState): string {
   for (const { amount, names } of clusters.sort((a, b) => b.amount - a.amount)) {
     if (lines.length) lines.push('');
     // 택배 금액은 *(...)* 로 흐리게 둡니다 — 기준은 어디까지나 굵게 찍은 분배금입니다.
-    lines.push(`**${fmt(amount)} 메소** *(택배 ${fmt(afterMailFee(amount))})* · ${names.length}명`);
+    lines.push(`**${fmt(amount)} 메소** *(택배 ${fmt(mailSendAmount(amount))})* · ${names.length}명`);
     for (let i = 0; i < names.length; i += NAMES_PER_LINE) {
       lines.push(names.slice(i, i + NAMES_PER_LINE).join(' · '));
     }
