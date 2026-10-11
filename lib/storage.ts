@@ -113,15 +113,23 @@ export function loadFromStorage(): { tabs: TabsState; state: AppState } {
   };
 }
 
-export function saveToStorage(tabs: TabsState, state: AppState): void {
-  // active tab의 data/date/title을 최신으로 반영한 뒤 저장합니다.
-  const nextTabs: TabsState = {
+/**
+ * 지금 보고 있는 기록(activeId)에 편집 중인 state 를 되써 넣은 목록을 돌려줍니다.
+ *
+ * 편집은 `state` 에만 쌓이고 `tabs.items[active].data` 는 기록을 열던 순간의 값 그대로입니다.
+ * activeId 를 바꾸기 전에 반드시 이걸 거쳐야 합니다 — 안 그러면 떠나는 기록의 입력이
+ * 열던 순간으로 되돌아갑니다.
+ */
+export function commitActive(tabs: TabsState, state: AppState): TabsState {
+  return {
     activeId: tabs.activeId,
     items: tabs.items.map((t) => {
       if (t.id !== tabs.activeId) return t;
       return { ...t, date: state.date, title: state.title, data: deepClone(state) };
     })
   };
-  localStorage.setItem(TABS_KEY, JSON.stringify(nextTabs));
 }
 
+export function saveToStorage(tabs: TabsState, state: AppState): void {
+  localStorage.setItem(TABS_KEY, JSON.stringify(commitActive(tabs, state)));
+}
