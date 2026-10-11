@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AppState, TabsState } from '@/lib/types';
-import { loadFromStorage, saveToStorage } from '@/lib/storage';
+import { commitActive, loadFromStorage, saveToStorage } from '@/lib/storage';
 import { deepClone, formatDate, genId, newBlankState, todayYmd } from '@/lib/utils';
 
 function labelOf(t: { date: string; title: string }): string {
@@ -71,11 +71,15 @@ export function useAllocatorState() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.date, state.title, hydrated]);
 
+  // 편집은 state 에만 쌓이고 tabs.items 의 현재 기록은 열던 순간의 값입니다. activeId 를
+  // 바꾸는 곳은 전부 commitActive 로 지금 입력을 먼저 되써 넣어야 합니다 — 예전에는
+  // 이걸 빼먹어서, 다른 기록으로 옮겼다 돌아오면 입력이 열던 순간으로 되돌아갔습니다
+  // (저장 effect 도 새 activeId 기준으로 돌아서 localStorage 에서도 사라졌습니다).
   const switchTab = (id: string) => {
     if (id === tabs.activeId) return;
     const target = tabs.items.find((t) => t.id === id);
     if (!target) return;
-    setTabs((prev) => ({ ...prev, activeId: id }));
+    setTabs((prev) => ({ ...commitActive(prev, state), activeId: id }));
     setState(deepClone(target.data));
   };
 
@@ -83,7 +87,10 @@ export function useAllocatorState() {
   const addNewTab = () => {
     const id = genId('tab');
     const data: AppState = { ...newBlankState(), date: todayYmd(), members: deepClone(state.members) };
-    setTabs((prev) => ({ activeId: id, items: [...prev.items, { id, date: data.date, title: data.title, data }] }));
+    setTabs((prev) => ({
+      activeId: id,
+      items: [...commitActive(prev, state).items, { id, date: data.date, title: data.title, data }]
+    }));
     setState(data);
   };
 
@@ -91,7 +98,10 @@ export function useAllocatorState() {
   const duplicateTab = () => {
     const id = genId('tab');
     const data = deepClone(state);
-    setTabs((prev) => ({ activeId: id, items: [...prev.items, { id, date: data.date, title: data.title, data }] }));
+    setTabs((prev) => ({
+      activeId: id,
+      items: [...commitActive(prev, state).items, { id, date: data.date, title: data.title, data }]
+    }));
     setState(data);
   };
 
@@ -101,7 +111,7 @@ export function useAllocatorState() {
     const activate = opts?.activate ?? true;
     setTabs((prev) => ({
       activeId: activate ? id : prev.activeId,
-      items: [...prev.items, { id, date: cloned.date, title: cloned.title, data: cloned }]
+      items: [...commitActive(prev, state).items, { id, date: cloned.date, title: cloned.title, data: cloned }]
     }));
     if (activate) setState(cloned);
   };
@@ -112,7 +122,7 @@ export function useAllocatorState() {
     if (idx < 0) return;
     if (!confirm(`'${labelOf(tabs.items[idx]!)}' 기록을 삭제할까요?`)) return;
 
-    const nextItems = tabs.items.slice();
+    const nextItems = commitActive(tabs, state).items;
     nextItems.splice(idx, 1);
 
     if (!nextItems.length) {
@@ -139,9 +149,13 @@ export function useAllocatorState() {
     setState(newBlankState());
   };
 
+  // 기록 목록(⌘K 요약 등)이 지금 기록을 열던 순간의 값으로 보여 주지 않게, 밖에는
+  // 편집 중인 입력을 반영한 목록을 내줍니다.
+  const tabsView = useMemo(() => commitActive(tabs, state), [tabs, state]);
+
   return {
     hydrated,
-    tabs,
+    tabs: tabsView,
     setTabs,
     state,
     setState,
